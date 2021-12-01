@@ -1,21 +1,27 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+
+import React, {useEffect} from 'react';
+import {SafeAreaView, ScrollView} from 'react-native';
+import {StyledWrapper} from './src/components/Chart/Styles';
+import {logdata} from './src/components/Chart/mock';
+import Chart from './src/components/Chart';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 export default function App() {
+
+  async function changeScreenOrientation() {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_LEFT);
+  }
+
+  useEffect(() => {
+    changeScreenOrientation().then(() => 'Portrait Mode On')
+  },[])
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaView>
+      <ScrollView>
+        <StyledWrapper>
+            <Chart logdata={logdata} maxVisiblePoints={250}/>
+        </StyledWrapper>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
