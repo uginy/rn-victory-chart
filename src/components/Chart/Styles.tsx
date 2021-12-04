@@ -3,7 +3,9 @@ import styled from 'styled-components/native';
 
 export const StyledWrapper = styled.View`
   display: flex;
+  flex-direction: column;
   height: 100%;
+  flex-grow: 1;
   padding: 5px;
 `;
 

@@ -1,4 +1,3 @@
-
 import React, {useEffect} from 'react';
 import {SafeAreaView, ScrollView} from 'react-native';
 import {StyledWrapper} from './src/components/Chart/Styles';
@@ -14,12 +13,12 @@ export default function App() {
 
   useEffect(() => {
     changeScreenOrientation().then(() => 'Portrait Mode On')
-  },[])
+  }, [])
   return (
     <SafeAreaView>
       <ScrollView>
         <StyledWrapper>
-            <Chart logdata={logdata} maxVisiblePoints={250}/>
+          <Chart logdata={logdata} maxVisiblePoints={250}/>
         </StyledWrapper>
       </ScrollView>
     </SafeAreaView>

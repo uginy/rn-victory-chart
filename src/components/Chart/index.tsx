@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {Dimensions} from 'react-native';
 import {View} from 'react-native';
 import {
   VictoryAxis,
@@ -9,7 +10,7 @@ import {
   VictoryTheme,
   createContainer,
 } from 'victory-native';
-import {debounce, last} from 'lodash-es';
+import {debounce} from 'lodash-es';
 import {format} from 'date-fns';
 import {Label} from './Label';
 import {Heading} from './Heading';
@@ -27,10 +28,11 @@ const mainChartWidth = 750;
 const mainChartHeight = 270;
 const zoomChartWidth = 750;
 const zoomChartHeight = 100;
+const legendChartHeight = 100;
 const tickValues = [0.25, 0.5, 0.75, 1];
 const zoomChartPadding = {top: 0, left: 0, right: 0, bottom: 40};
 const mainChartDomainPadding = {x: [0, 0], y: 0};
-const zoomChartDomainPadding = {x: [35, 35], y: 0};
+const zoomChartDomainPadding = {x: [0, 0], y: 0};
 const animationDuration = 50;
 const activeLineColor = 'blue';
 const yDomainMarginTop = 1.1;
@@ -53,7 +55,7 @@ const VictoryZoomVoronoiContainer = createContainer('voronoi', 'zoom');
 const getEntireDomain = (data: any) => {
   return {
     y: [0, 1],
-    x: [new Date(last(data).date_time), new Date(data[0].date_time)], // Reverse order in this case
+    x: [new Date(data[data.length - 2].date_time), new Date(data[1].date_time)], // Reverse order in this case
   };
 };
 
@@ -115,6 +117,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const [showP1, setShowP1] = useState(true);
   const [showP2, setShowP2] = useState(true);
   const [, rerender] = useState(() => '');
+  const size = useRef({width: mainChartWidth, height: mainChartHeight});
 
   const [allData, setAllData] = useState([]);
   const activeValues = useRef({});
@@ -130,13 +133,13 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       activeValues.current['time'] = time;
     }
     redraw(x);
-
     return (
-      <Svg height={mainChartHeight} width={mainChartWidth}>
+      <Svg height={(size.current.height - zoomChartHeight - 200) || mainChartHeight}
+           width={size.current.width || mainChartWidth}>
         <G>
           <Line transform={`translate(${x}, 50)`}
                 x1={0}
-                y1={mainChartHeight - 100}
+                y1={(size.current.height - zoomChartHeight - 200) || mainChartHeight - 100}
                 stroke={activeLineColor}
                 strokeWidth={1}/>
         </G>
@@ -180,6 +183,14 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     setSelectedDomain(domain);
   }, debounceTime);
 
+  const handleLayout = () => {
+    const {width: w, height: h} = Dimensions.get("window");
+    size.current = {
+      width: h,
+      height: w
+    }
+    redraw();
+  }
   const yAccessorFlow = (datum) => datum.y / maxLogsData.maxFlow;
   const yAccessorP = (datum) => datum.y / maxLogsData.maxP;
   const toolTypeAccessor = ({datum}) => `y: ${datum.y}`;
@@ -187,11 +198,12 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   useEffect(() => {
     let destroyed = false;
     if (!destroyed) {
+      handleLayout();
       setSelectedDomain(getEntireDomain(logdata));
       setAllData(filterByPrecisionBrush(mappedData(logdata)));
     }
     return () => {
-      console.log('unmounted');
+      // console.log('unmounted');
       destroyed = true;
     }
   }, [logdata]);
@@ -202,7 +214,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         <Heading
           title={'Time'}
           value={activeValues.current.time
-          ?? format(selectedDomain.x[0], 'yyyy-MM-dd HH:mm:ss')
+            ?? format(selectedDomain.x[0], 'yyyy-MM-dd HH:mm:ss')
           }
         />
         <Label
@@ -235,10 +247,11 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={mainChartDomainPadding}
-          width={mainChartWidth}
-          height={mainChartHeight}
+          width={size.current.width || mainChartWidth}
+          height={(size.current.height - zoomChartHeight - legendChartHeight) || mainChartHeight}
           scale={{x: 'time'}}
           domain={{y: [0, 1]}}
+          responsive={true}
           containerComponent={
             <VictoryZoomVoronoiContainer
               zoomDimension='x'
@@ -311,7 +324,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             dependentAxis
             key='2'
             label='Flow [m³/h]'
-            offsetX={mainChartWidth - 50}
+            offsetX={(size.current.width || mainChartWidth) - 50}
             tickValues={tickValues}
             style={{
               axisLabel: {fontSize: 14, padding: -35},
@@ -331,7 +344,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             }}
             tickFormat={t => Number(t * maxValues.maxFlow / yDomainMarginTop).toPrecision(2)}
           />
-          <VictoryAxis offsetY={mainChartHeight - 50}
+          <VictoryAxis offsetY={size.current.height - zoomChartHeight - legendChartHeight - 50}
                        style={{tickLabels: {display: 'none'}}}
           />
           <VictoryAxis label='Time'
@@ -350,7 +363,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         <VictoryChart
           domain={{y: [0, 1]}}
           domainPadding={zoomChartDomainPadding}
-          width={zoomChartWidth}
+          width={size.current.width || zoomChartWidth}
           height={zoomChartHeight}
           scale={{x: 'time'}}
           padding={zoomChartPadding}
