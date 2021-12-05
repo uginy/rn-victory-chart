@@ -18,7 +18,7 @@ export const StyledMainInnerWrapper = styled.View`
 `
 
 export const StyledLegendWrapper = styled.View`
-  padding:2px 0 0;
+  padding: 2px 0 0;
   width: 100%;
   z-index: 9999;
 `
@@ -27,9 +27,10 @@ export const StyledLegendInner = styled.View`
   padding-top: 8px;
   border-radius: 5px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
+  border: 1px solid silver;
 `
 export const StyledLegendHeader = styled.View`
   display: flex;
@@ -44,4 +45,9 @@ export const StyledLegendLabel = styled.View`
   padding: 5px 10px;
   align-items: center;
   font-size: 20px;
+`
+
+export const StyledLabelWrapper = styled.View`
+  display: flex;
+  flex-direction: row;
 `

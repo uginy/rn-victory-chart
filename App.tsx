@@ -12,10 +12,10 @@ export default function App() {
   }
 
   useEffect(() => {
-    changeScreenOrientation().then(() => 'Portrait Mode On')
+    // changeScreenOrientation().then(() => 'Portrait Mode On')
   }, [])
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{ paddingTop: 40}}>
       <ScrollView>
         <StyledWrapper>
           <Chart logdata={logdata} maxVisiblePoints={250}/>

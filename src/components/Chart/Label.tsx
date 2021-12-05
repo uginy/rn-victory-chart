@@ -15,7 +15,7 @@ export const Label: FC<Props> = ({text, show, setShow, value = 0, color = 'green
     <StyledLegendLabel>
       <View>
         <Switch
-          style={{ transform: [{ scaleX: .8 }, { scaleY: .8 }] }}
+          style={{ transform: [{ scaleX: .7 }, { scaleY: .7 }] }}
           trackColor={{false: "silver", true: "silver"}}
           thumbColor={show ? color : "#f4f3f4"}
           ios_backgroundColor="#3e3e3e"
@@ -27,7 +27,7 @@ export const Label: FC<Props> = ({text, show, setShow, value = 0, color = 'green
         <Text> {text}: </Text>
       </View>
       <View>
-        <Text>{value}</Text>
+        <Text style={{ fontWeight: 'bold' }}>{value}</Text>
       </View>
     </StyledLegendLabel>
   );

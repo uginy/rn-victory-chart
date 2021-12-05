@@ -5,12 +5,13 @@ import {StyledLegendHeader} from './Styles';
 interface Props {
   title: string;
   value: string;
+  color?: string;
 }
 
-export const Heading = ({title, value}: Props) => {
+export const Heading = ({title, value, color = 'black'}: Props) => {
   return !!value && (
     <StyledLegendHeader>
-        <Text>{title}: </Text><Text>{value}</Text>
+        <Text style={{ color }}>{title}: </Text><Text>{value}</Text>
     </StyledLegendHeader>
   )
 };

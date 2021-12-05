@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Dimensions} from 'react-native';
+import {Button, Dimensions} from 'react-native';
 import {View} from 'react-native';
 import {
   VictoryAxis,
@@ -8,15 +8,15 @@ import {
   VictoryChart,
   VictoryLine,
   VictoryTheme,
-  createContainer,
+  createContainer, VictoryScatter, VictoryZoomContainer,
 } from 'victory-native';
 import {debounce} from 'lodash-es';
 import {format} from 'date-fns';
 import {Label} from './Label';
-import {Heading} from './Heading';
 import {Legend} from './Legend';
-import {StyledMainInnerWrapper, StyledWrapper} from './Styles';
+import {StyledHeadingTime, StyledLabelWrapper, StyledMainInnerWrapper, StyledWrapper} from './Styles';
 import Svg, {Line, G} from 'react-native-svg';
+import {Heading} from './Heading';
 
 // Settings
 const debounceTime = 100;
@@ -28,14 +28,17 @@ const mainChartWidth = 750;
 const mainChartHeight = 270;
 const zoomChartWidth = 750;
 const zoomChartHeight = 100;
-const legendChartHeight = 100;
+const legendChartHeight = 130;
 const tickValues = [0.25, 0.5, 0.75, 1];
 const zoomChartPadding = {top: 0, left: 0, right: 0, bottom: 40};
+const mainChartPadding = {top: 50, left: 60, right: 50, bottom: 50};
 const mainChartDomainPadding = {x: [0, 0], y: 0};
 const zoomChartDomainPadding = {x: [0, 0], y: 0};
 const animationDuration = 50;
 const activeLineColor = 'blue';
 const yDomainMarginTop = 1.1;
+const allowZoom = true;
+const allowPan = true;
 
 // Mapped Object
 const mappedPropNames = {
@@ -116,6 +119,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const [showFlow, setShowFlow] = useState(true);
   const [showP1, setShowP1] = useState(true);
   const [showP2, setShowP2] = useState(true);
+  const [showBrushContainer, setShowBrushContainer] = useState(false)
   const [, rerender] = useState(() => '');
   const size = useRef({width: mainChartWidth, height: mainChartHeight});
 
@@ -126,20 +130,21 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
 
   const CustomTooltip = (props) => {
     const {x, activePoints, datum} = props;
-    const time = format(new Date(datum.x), 'yyyy-MM-dd HH:mm:ss');
+    const time = format(new Date(datum.x), 'HH:mm:ss yyyy-MM-dd');
     for (const point of activePoints) {
       const id = point.childName;
       activeValues.current[mappedPropIds[id]] = point.y;
       activeValues.current['time'] = time;
     }
     redraw(x);
+    const height = (size.current.height || mainChartHeight) - legendChartHeight - mainChartPadding.bottom - 50;
     return (
-      <Svg height={(size.current.height - zoomChartHeight - 200) || mainChartHeight}
+      <Svg height={height}
            width={size.current.width || mainChartWidth}>
         <G>
           <Line transform={`translate(${x}, 50)`}
                 x1={0}
-                y1={(size.current.height - zoomChartHeight - 200) || mainChartHeight - 100}
+                y1={height}
                 stroke={activeLineColor}
                 strokeWidth={1}/>
         </G>
@@ -150,6 +155,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const zoomedData = useMemo(() => {
     const dataZoomed = filterDataZoomed(logdata, selectedDomain);
     const mapped = mappedData(dataZoomed);
+    console.log(mapped)
     return filterByPrecision(mapped, maxVisiblePoints);
   }, [selectedDomain, logdata]);
 
@@ -167,7 +173,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       maxFlow = 1;
     }
     const maxP = maxP1 > maxP2 ? maxP1 : maxP2;
-    return {maxFlow: maxFlow * yDomainMarginTop, maxP: maxP * yDomainMarginTop};
+    return {maxFlow: maxFlow * yDomainMarginTop || 1, maxP: maxP * yDomainMarginTop || 1};
   }, [zoomedData, showP1, showP2, showFlow]);
 
   const maxLogsData = useMemo(() => {
@@ -186,8 +192,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const handleLayout = () => {
     const {width: w, height: h} = Dimensions.get("window");
     size.current = {
-      width: h,
-      height: w
+      width: w,
+      height: h
     }
     redraw();
   }
@@ -212,53 +218,66 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     <StyledWrapper>
       <Legend>
         <Heading
-          title={'Time'}
+          color={'grey'}
+          title={'Selected Time'}
           value={activeValues.current.time
-            ?? format(selectedDomain.x[0], 'yyyy-MM-dd HH:mm:ss')
+            ?? format(selectedDomain.x[0], 'HH:mm:ss yyyy-MM-dd')
           }
         />
-        <Label
-          text='flow'
-          show={showFlow}
-          setShow={setShowFlow}
-          value={activeValues.current.flow}
-          color='tomato'
-        />
-        <Label
-          color='green'
-          text='P1'
-          show={showP1}
-          setShow={setShowP1}
-          value={activeValues.current.p1}
-        />
-        <Label
-          text='P2'
-          show={showP2}
-          setShow={setShowP2}
-          value={activeValues.current.p2}
-          color='black'
-        />
-        <Heading
-          title={'Visible Points'}
-          value={zoomedData.length}
-        />
+        <StyledLabelWrapper>
+          <Label
+            text='flow'
+            show={showFlow}
+            setShow={setShowFlow}
+            value={activeValues.current.flow}
+            color='tomato'
+          />
+          <Label
+            color='green'
+            text='P1'
+            show={showP1}
+            setShow={setShowP1}
+            value={activeValues.current.p1}
+          />
+          <Label
+            text='P2'
+            show={showP2}
+            setShow={setShowP2}
+            value={activeValues.current.p2}
+            color='black'
+          />
+        </StyledLabelWrapper>
       </Legend>
       <StyledMainInnerWrapper>
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={mainChartDomainPadding}
           width={size.current.width || mainChartWidth}
-          height={(size.current.height - zoomChartHeight - legendChartHeight) || mainChartHeight}
+          height={(size.current.height - legendChartHeight) || mainChartHeight}
           scale={{x: 'time'}}
           domain={{y: [0, 1]}}
           responsive={true}
+          zoomDomain={selectedDomain}
+          onZoomDomainChange={handleZoom}
+          padding={mainChartPadding}
+          events={[
+            {
+              target: "data",
+              eventHandlers: {
+                onMouseOver: () => activate,
+                onFocus: () => activate,
+                onTouchStart: () => activate,
+                onMouseOut: () => deactivate,
+                onBlur: () => deactivate,
+                onTouchEnd: () => deactivate
+              }
+            }
+          ]}
           containerComponent={
             <VictoryZoomVoronoiContainer
               zoomDimension='x'
-              allowPan={false}
-              allowZoom={false}
-              zoomDomain={selectedDomain}
-              onZoomDomainChange={handleZoom}
+              allowPan={allowPan}
+              allowZoom={allowZoom}
               voronoiDimension='x'
               labels={toolTypeAccessor}
               labelComponent={
@@ -302,7 +321,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             dependentAxis
             domainPadding={{y: 15}}
             tickValues={tickValues}
-            tickFormat={(t) => t * maxValues.maxP / yDomainMarginTop}
+            tickFormat={(t) => Number(t * maxValues.maxP / yDomainMarginTop).toFixed(1)}
             style={{
               axisLabel: {fontSize: 14, padding: 35},
               grid: {
@@ -344,7 +363,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             }}
             tickFormat={t => Number(t * maxValues.maxFlow / yDomainMarginTop).toPrecision(2)}
           />
-          <VictoryAxis offsetY={size.current.height - zoomChartHeight - legendChartHeight - 50}
+          <VictoryAxis offsetY={size.current.height - legendChartHeight - 50}
                        style={{tickLabels: {display: 'none'}}}
           />
           <VictoryAxis label='Time'
@@ -360,49 +379,49 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                        }}/>
         </VictoryChart>
 
-        <VictoryChart
-          domain={{y: [0, 1]}}
-          domainPadding={zoomChartDomainPadding}
-          width={size.current.width || zoomChartWidth}
-          height={zoomChartHeight}
-          scale={{x: 'time'}}
-          padding={zoomChartPadding}
-          containerComponent={
-            <VictoryBrushContainer
-              brushDimension='x'
-              height={zoomChartHeight}
-              brushDomain={{x: selectedDomain.x}}
-              onBrushDomainChange={handleZoom}
+        {showBrushContainer &&
+          <VictoryChart
+            domain={{y: [0, 1]}}
+            domainPadding={zoomChartDomainPadding}
+            width={size.current.width - 100 || zoomChartWidth}
+            height={zoomChartHeight}
+            scale={{x: 'time'}}
+            padding={zoomChartPadding}
+            containerComponent={
+              <VictoryBrushContainer
+                brushDimension='x'
+                height={zoomChartHeight}
+                brushDomain={{x: selectedDomain.x}}
+                onBrushDomainChange={handleZoom}
+              />
+            }
+          >
+            <VictoryAxis label='time' style={{
+              axisLabel: {display: 'none'},
+              tickLabels: {fontSize: 8, padding: 4},
+            }}
             />
-          }
-        >
-          <VictoryAxis label='time' style={{
-            axisLabel: {display: 'none'},
-            tickLabels: {fontSize: 8, padding: 4},
-          }}
-          />
-          <VictoryLine
-            style={{data: {stroke: 'tomato', strokeWidth: 0.7}}}
-            y={yAccessorFlow}
-            data={allData.flow}
-          />
-          <VictoryLine
-            style={{data: {stroke: 'green', strokeWidth: 0.7}}}
-            data={allData.p1}
-            y={yAccessorP}
-          />
-          <VictoryLine
-            style={{data: {stroke: 'black', strokeWidth: 0.7}}}
-            data={allData.p2}
-            y={yAccessorP}
-          />
-        </VictoryChart>
-        <View
-          style={{
-            borderBottomColor: 'black',
-            borderBottomWidth: 1,
-          }}
-        />
+            <VictoryLine
+              style={{data: {stroke: 'tomato', strokeWidth: 0.7}}}
+              y={yAccessorFlow}
+              data={allData.flow}
+            />
+            <VictoryLine
+              style={{data: {stroke: 'green', strokeWidth: 0.7}}}
+              data={allData.p1}
+              y={yAccessorP}
+            />
+            <VictoryLine
+              style={{data: {stroke: 'black', strokeWidth: 0.7}}}
+              data={allData.p2}
+              y={yAccessorP}
+            />
+          </VictoryChart>}
+        <View>
+          <Button onPress={() => {
+            setSelectedDomain(getEntireDomain(logdata))
+          }} title={'Reset Zoom'}/>
+        </View>
       </StyledMainInnerWrapper>
     </StyledWrapper>
   );
