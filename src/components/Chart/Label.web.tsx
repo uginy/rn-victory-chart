@@ -1,5 +1,6 @@
 import React, {FC} from 'react';
-import {Switch} from 'react-native';
+import styled from 'styled-components';
+import Switch from '@mui/material/Switch';
 
 interface Props {
   text: string;
@@ -15,17 +16,20 @@ export const Label: FC<Props> = ({text, show, setShow, value = 0, color}) => {
       className="chart_legend_label"
       style={{color: show ? color : 'grey'}}
     >
-      <div style={{ display: 'flex'}}>
+      <StyledSwitch>
         <Switch
-          trackColor={{false: "silver", true: "#e3e3e3"}}
-          thumbColor={show ? color : "#f9f9f9"}
-          onValueChange={() => setShow(prev => !prev)}
-          ios_backgroundColor="#3e3e3e"
-          value={show}
+          style={{ color: color}}
+          onChange={() => setShow(prev => !prev)}
+          checked={show}
           />
         <span>&nbsp;{text}:</span>
-      </div>
+      </StyledSwitch>
       <span>{value}</span>
     </div>
   );
 };
+
+const StyledSwitch = styled.div`
+  display: flex; 
+  align-items: center;
+`

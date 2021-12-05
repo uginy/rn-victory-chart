@@ -8,7 +8,7 @@ import {
   VictoryTheme,
   createContainer, VictoryArea,
 } from 'victory';
-import {debounce, last} from 'lodash';
+import {debounce} from 'lodash';
 import {format} from 'date-fns';
 import {Label} from './Label';
 import {Heading} from './Heading';
@@ -51,7 +51,7 @@ const VictoryZoomVoronoiContainer = createContainer('voronoi', 'zoom');
 const getEntireDomain = (data) => {
   return {
     y: [0, 1],
-    x: [new Date(last(data).date_time), new Date(data[0].date_time)], // Reverse order in this case
+    x: [new Date(data[data.length-3].date_time), new Date(data[0].date_time)], // Reverse order in this case
   };
 };
 

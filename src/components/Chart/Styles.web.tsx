@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const StyledWrapper = styled.div`
   display: flex;
-  
+
   .chart_main_inner_wrapper {
     display: flex;
     flex-direction: column;
@@ -12,6 +12,7 @@ export const StyledWrapper = styled.div`
   .chart_legend_wrapper {
     padding: 3.5rem 0;
     min-width: 220px;
+    font-family: Arial, SansSerif, serif;
   }
 
   .chart_legend_inner {
