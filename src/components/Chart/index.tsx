@@ -1,44 +1,38 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Button, Dimensions} from 'react-native';
-import {View} from 'react-native';
+import {Dimensions, StyleSheet} from 'react-native';
 import {
+  createContainer,
   VictoryAxis,
-  VictoryBrushContainer,
   VictoryChart,
-  VictoryLine,
+  VictoryArea,
   VictoryTheme,
-  createContainer, VictoryScatter, VictoryZoomContainer,
 } from 'victory-native';
+import Svg, {G, Line, Defs, LinearGradient, Stop} from 'react-native-svg';
+import {MaterialIcons} from '@expo/vector-icons';
 import {debounce} from 'lodash-es';
 import {format} from 'date-fns';
 import {Label} from './Label';
 import {Legend} from './Legend';
-import {StyledHeadingTime, StyledLabelWrapper, StyledMainInnerWrapper, StyledWrapper} from './Styles';
-import Svg, {Line, G} from 'react-native-svg';
 import {Heading} from './Heading';
+import {Mode} from './Mode';
+import {StyledLabelWrapper, StyledMainInnerWrapper, StyledOptions, StyledWrapper} from './Styles';
 
 // Settings
-const debounceTime = 100;
 const debounceOver = 100;
 const percentileK = 0.05;
-const brushSkip = 4;
 const degree = 2;
 const mainChartWidth = 750;
 const mainChartHeight = 270;
-const zoomChartWidth = 750;
-const zoomChartHeight = 100;
+const mainChartBottomAxisHeight = 10;
+const optionsChartHeight = 40;
 const legendChartHeight = 130;
 const tickValues = [0.25, 0.5, 0.75, 1];
-const zoomChartPadding = {top: 0, left: 0, right: 0, bottom: 40};
-const mainChartPadding = {top: 50, left: 60, right: 50, bottom: 50};
+const mainChartPadding = {top: 50, left: 60, right: 50, bottom: 40};
 const mainChartDomainPadding = {x: [0, 0], y: 0};
-const zoomChartDomainPadding = {x: [0, 0], y: 0};
 const animationDuration = 50;
 const activeLineColor = 'blue';
 const yDomainMarginTop = 1.1;
-const allowZoom = true;
-const allowPan = true;
 
 // Mapped Object
 const mappedPropNames = {
@@ -53,14 +47,24 @@ const mappedPropIds = {
 };
 
 // To allow use several containerComponents
-const VictoryZoomVoronoiContainer = createContainer('voronoi', 'zoom');
+
 
 const getEntireDomain = (data: any) => {
   return {
     y: [0, 1],
-    x: [new Date(data[data.length - 2].date_time), new Date(data[1].date_time)], // Reverse order in this case
+    x: [new Date(data[data.length - 1].date_time), new Date(data[0].date_time)], // Reverse order in this case
   };
 };
+
+const zoomIt = (data: any, level) => {
+  const stepSize = 2 * parseInt(level);
+  const xStart = new Date(data[data.length - stepSize].date_time);
+  const xEnd = new Date(data[stepSize - 1].date_time);
+  return {
+    y: [0, 1],
+    x: [xStart, xEnd], // Reverse order in this case
+  }
+}
 
 interface ChartProps {
   logdata: any;
@@ -103,15 +107,7 @@ const filterByPrecision = (data, maxPoints) => {
   return newData;
 };
 
-const filterByPrecisionBrush = (data) => {
-  const newData = {};
-  for (let prop in data) {
-    if (data.hasOwnProperty(prop)) {
-      newData[prop] = data[prop].filter((d, i) => i % brushSkip === 0);
-    }
-  }
-  return newData;
-};
+const VictoryZoomVoronoiContainer = createContainer('zoom', 'voronoi');
 
 export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
 
@@ -119,16 +115,19 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const [showFlow, setShowFlow] = useState(true);
   const [showP1, setShowP1] = useState(true);
   const [showP2, setShowP2] = useState(true);
-  const [showBrushContainer, setShowBrushContainer] = useState(false)
+  const [panning, setPanning] = useState(false);
+
   const [, rerender] = useState(() => '');
   const size = useRef({width: mainChartWidth, height: mainChartHeight});
-
-  const [allData, setAllData] = useState([]);
+  const zoomLevel = useRef(1);
   const activeValues = useRef({});
 
   const redraw = debounce(rerender, debounceOver);
 
   const CustomTooltip = (props) => {
+    if (panning) {
+      return <></>;
+    }
     const {x, activePoints, datum} = props;
     const time = format(new Date(datum.x), 'HH:mm:ss yyyy-MM-dd');
     for (const point of activePoints) {
@@ -137,7 +136,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       activeValues.current['time'] = time;
     }
     redraw(x);
-    const height = (size.current.height || mainChartHeight) - legendChartHeight - mainChartPadding.bottom - 50;
+    const height = (size.current.height || mainChartHeight)
+      - legendChartHeight - optionsChartHeight - mainChartPadding.bottom - mainChartBottomAxisHeight;
     return (
       <Svg height={height}
            width={size.current.width || mainChartWidth}>
@@ -155,9 +155,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const zoomedData = useMemo(() => {
     const dataZoomed = filterDataZoomed(logdata, selectedDomain);
     const mapped = mappedData(dataZoomed);
-    console.log(mapped)
     return filterByPrecision(mapped, maxVisiblePoints);
-  }, [selectedDomain, logdata]);
+  }, [logdata]);
 
   const maxValues = useMemo(() => {
     let maxFlow = zoomedData?.flow?.length > 0 ? Math.max(...zoomedData.flow.map((d) => d?.y)) : 1;
@@ -176,18 +175,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     return {maxFlow: maxFlow * yDomainMarginTop || 1, maxP: maxP * yDomainMarginTop || 1};
   }, [zoomedData, showP1, showP2, showFlow]);
 
-  const maxLogsData = useMemo(() => {
-    const dataLogs = mappedData(logdata);
-    const maxFlow = dataLogs?.flow?.length > 0 ? Math.max(...dataLogs.flow.map((d) => d?.y)) : 1;
-    const maxP1 = dataLogs?.p1?.length > 0 ? Math.max(...dataLogs.p1.map((d) => d?.y)) : 1;
-    const maxP2 = dataLogs.p2?.length > 0 ? Math.max(...dataLogs.p2.map((d) => d?.y)) : 1;
-    const maxP = maxP1 > maxP2 ? maxP1 : maxP2;
-    return {maxFlow, maxP};
-  }, [logdata]);
-
-  const handleZoom = debounce((domain) => {
-    setSelectedDomain(domain);
-  }, debounceTime);
+  const handleZoom = domain => {
+    setSelectedDomain(() => ({...domain}));
+  }
 
   const handleLayout = () => {
     const {width: w, height: h} = Dimensions.get("window");
@@ -197,8 +187,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     }
     redraw();
   }
-  const yAccessorFlow = (datum) => datum.y / maxLogsData.maxFlow;
-  const yAccessorP = (datum) => datum.y / maxLogsData.maxP;
+  const yAccessorFlow = (datum) => datum.y / maxValues.maxFlow
+  const yAccessorP = (datum) => datum.y / maxValues.maxP
   const toolTypeAccessor = ({datum}) => `y: ${datum.y}`;
 
   useEffect(() => {
@@ -206,7 +196,6 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     if (!destroyed) {
       handleLayout();
       setSelectedDomain(getEntireDomain(logdata));
-      setAllData(filterByPrecisionBrush(mappedData(logdata)));
     }
     return () => {
       // console.log('unmounted');
@@ -249,35 +238,43 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         </StyledLabelWrapper>
       </Legend>
       <StyledMainInnerWrapper>
+        <Defs>
+          <LinearGradient id="flow-grad" style={{transform: 'rotate(90deg)'}}>
+            <Stop offset="0%" stopColor="#9c0000"/>
+            <Stop offset="50%" stopColor="#e84d4d"/>
+            <Stop offset="100%" stopColor="#ff9e9e"/>
+          </LinearGradient>
+        </Defs>
+        <Defs>
+          <LinearGradient id="p1-grad" style={{transform: 'rotate(90deg)'}}>
+            <Stop offset="0%" stopColor="#174f1a"/>
+            <Stop offset="50%" stopColor="#39913d"/>
+            <Stop offset="100%" stopColor="#75d97a"/>
+          </LinearGradient>
+        </Defs>
+        <Defs>
+          <LinearGradient id="p2-grad" style={{transform: 'rotate(90deg)'}}>
+            <Stop offset="0%" stopColor="#000000"/>
+            <Stop offset="50%" stopColor="#555555"/>
+            <Stop offset="100%" stopColor="#DDDDDD"/>
+          </LinearGradient>
+        </Defs>
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={mainChartDomainPadding}
           width={size.current.width || mainChartWidth}
           height={(size.current.height - legendChartHeight) || mainChartHeight}
           scale={{x: 'time'}}
-          domain={{y: [0, 1]}}
+          domain={getEntireDomain(logdata)}
           responsive={true}
-          zoomDomain={selectedDomain}
-          onZoomDomainChange={handleZoom}
           padding={mainChartPadding}
-          events={[
-            {
-              target: "data",
-              eventHandlers: {
-                onMouseOver: () => activate,
-                onFocus: () => activate,
-                onTouchStart: () => activate,
-                onMouseOut: () => deactivate,
-                onBlur: () => deactivate,
-                onTouchEnd: () => deactivate
-              }
-            }
-          ]}
           containerComponent={
             <VictoryZoomVoronoiContainer
               zoomDimension='x'
-              allowPan={allowPan}
-              allowZoom={allowZoom}
+              zoomDomain={selectedDomain}
+              onZoomDomainChange={handleZoom}
+              allowPan={panning}
+              allowZoom={panning}
               voronoiDimension='x'
               labels={toolTypeAccessor}
               labelComponent={
@@ -290,29 +287,44 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             />
           }
         >
-          {showFlow && <VictoryLine
+          {showFlow && <VictoryArea
             animate={{duration: animationDuration}}
-            onZoomDomainChange={handleZoom}
             name='flow-line'
-            style={{
-              data: {stroke: 'tomato', width: 1},
-            }}
             data={zoomedData.flow}
-            y={(datum) => datum.y / maxValues.maxFlow}
+            y={yAccessorFlow}
+            style={{
+              data: {
+                stroke: 'tomato',
+                fill: 'tomato'
+                // fill: 'url(#flow-grad)'
+              },
+            }}
           />}
-          {showP1 && <VictoryLine
+          {showP1 && <VictoryArea
             animate={{duration: animationDuration}}
             name='p1-line'
-            style={{data: {stroke: 'green'}}}
+            style={{
+              data: {
+                stroke: 'green',
+                fill: 'green'
+                // fill: 'url(#p1-grad)'
+              }
+            }}
             data={zoomedData.p1}
-            y={(datum) => datum.y / maxValues.maxP}
+            y={yAccessorP}
           />}
-          {showP2 && <VictoryLine
+          {showP2 && <VictoryArea
             animate={{duration: animationDuration}}
             name='p2-line'
-            style={{data: {stroke: 'black'}}}
+            style={{
+              data: {
+                stroke: 'black',
+                fill: 'black'
+                // fill: 'url(#p2-grad)'
+              }
+            }}
             data={zoomedData.p2}
-            y={(datum) => datum.y / maxValues.maxP}
+            y={yAccessorP}
           />}
           <VictoryAxis
             domain={{y: [0, 1]}}
@@ -379,50 +391,55 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                        }}/>
         </VictoryChart>
 
-        {showBrushContainer &&
-          <VictoryChart
-            domain={{y: [0, 1]}}
-            domainPadding={zoomChartDomainPadding}
-            width={size.current.width - 100 || zoomChartWidth}
-            height={zoomChartHeight}
-            scale={{x: 'time'}}
-            padding={zoomChartPadding}
-            containerComponent={
-              <VictoryBrushContainer
-                brushDimension='x'
-                height={zoomChartHeight}
-                brushDomain={{x: selectedDomain.x}}
-                onBrushDomainChange={handleZoom}
-              />
-            }
-          >
-            <VictoryAxis label='time' style={{
-              axisLabel: {display: 'none'},
-              tickLabels: {fontSize: 8, padding: 4},
-            }}
-            />
-            <VictoryLine
-              style={{data: {stroke: 'tomato', strokeWidth: 0.7}}}
-              y={yAccessorFlow}
-              data={allData.flow}
-            />
-            <VictoryLine
-              style={{data: {stroke: 'green', strokeWidth: 0.7}}}
-              data={allData.p1}
-              y={yAccessorP}
-            />
-            <VictoryLine
-              style={{data: {stroke: 'black', strokeWidth: 0.7}}}
-              data={allData.p2}
-              y={yAccessorP}
-            />
-          </VictoryChart>}
-        <View>
-          <Button onPress={() => {
-            setSelectedDomain(getEntireDomain(logdata))
-          }} title={'Reset Zoom'}/>
-        </View>
+        <StyledOptions>
+          <MaterialIcons
+            style={styles.roundButton}
+            name="zoom-out"
+            onPress={() => {
+              if (zoomLevel.current > 1) {
+                zoomLevel.current--;
+              }
+              setSelectedDomain(zoomIt(logdata, zoomLevel.current));
+            }}/>
+          <MaterialIcons
+            style={styles.roundButton}
+            name="zoom-out-map"
+            onPress={() => {
+              zoomLevel.current = 1;
+              setSelectedDomain(getEntireDomain(logdata));
+              zoomIt(logdata, zoomLevel.current)
+            }}/>
+          <MaterialIcons
+            style={styles.roundButton}
+            name="zoom-in"
+            onPress={() => {
+              if (zoomLevel.current < 10) {
+                zoomLevel.current++;
+              }
+              setSelectedDomain(zoomIt(logdata, zoomLevel.current));
+              zoomIt(logdata, zoomLevel.current)
+            }}/>
+          <Mode
+            text={panning ? 'Zoom/Pan' : 'Select'}
+            show={panning}
+            setShow={setPanning}
+            color='green'
+            altColor='orange'
+          />
+        </StyledOptions>
       </StyledMainInnerWrapper>
     </StyledWrapper>
   );
 }
+
+/// Just some styles
+const styles = StyleSheet.create({
+  roundButton: {
+    color: 'black',
+    fontSize: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 40,
+    padding: 3,
+  }
+});

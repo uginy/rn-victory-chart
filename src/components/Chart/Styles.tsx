@@ -18,13 +18,13 @@ export const StyledMainInnerWrapper = styled.View`
 `
 
 export const StyledLegendWrapper = styled.View`
-  padding: 2px 0 0;
+  padding: 0;
   width: 100%;
   z-index: 9999;
 `
 
 export const StyledLegendInner = styled.View`
-  padding-top: 8px;
+  padding: 0;
   border-radius: 5px;
   display: flex;
   flex-direction: column;
@@ -32,6 +32,7 @@ export const StyledLegendInner = styled.View`
   justify-content: space-around;
   border: 1px solid silver;
 `
+
 export const StyledLegendHeader = styled.View`
   display: flex;
   flex-direction: row;
@@ -42,12 +43,20 @@ export const StyledLegendLabel = styled.View`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: 5px 10px;
+  padding: 0 10px;
   align-items: center;
-  font-size: 20px;
 `
 
 export const StyledLabelWrapper = styled.View`
   display: flex;
   flex-direction: row;
+`
+
+export const StyledOptions = styled.View`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  width: 100%;
+  padding: 0;
+  justify-content: space-evenly;
 `

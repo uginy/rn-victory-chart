@@ -6,7 +6,7 @@ import {
   VictoryChart,
   VictoryLine,
   VictoryTheme,
-  createContainer,
+  createContainer, VictoryArea,
 } from 'victory';
 import {debounce, last} from 'lodash';
 import {format} from 'date-fns';
@@ -188,6 +188,29 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   return (
     <StyledWrapper>
       <div className="chart_main_inner_wrapper">
+        <svg style={{height: 0}}>
+          <defs>
+            <linearGradient id="flow-grad" style={{ transform: 'rotate(90deg)'}}>
+              <stop offset="0%" stopColor="#9c0000"/>
+              <stop offset="50%" stopColor="#e84d4d"/>
+              <stop offset="100%" stopColor="#ff9e9e"/>
+            </linearGradient>
+          </defs>
+          <defs>
+            <linearGradient id="p1-grad" style={{ transform: 'rotate(90deg)'}}>
+              <stop offset="0%" stopColor="#174f1a"/>
+              <stop offset="50%" stopColor="#39913d"/>
+              <stop offset="100%" stopColor="#75d97a"/>
+            </linearGradient>
+          </defs>
+          <defs>
+            <linearGradient id="p2-grad" style={{ transform: 'rotate(90deg)'}}>
+              <stop offset="0%" stopColor="#000000"/>
+              <stop offset="50%" stopColor="#555555"/>
+              <stop offset="100%" stopColor="#DDDDDD"/>
+            </linearGradient>
+          </defs>
+        </svg>
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={mainChartDomainPadding}
@@ -214,27 +237,27 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             />
           }
         >
-          {showFlow && <VictoryLine
+          {showFlow && <VictoryArea
             animate={{duration: animationDuration}}
             onZoomDomainChange={handleZoom}
             name='flow-line'
             style={{
-              data: {stroke: 'tomato', width: 1},
+              data: {fill: "url(#flow-grad)", width: 1},
             }}
             data={zoomedData.flow}
             y={(datum) => datum.y / maxValues.maxFlow}
           />}
-          {showP1 && <VictoryLine
+          {showP1 && <VictoryArea
             animate={{duration: animationDuration}}
             name='p1-line'
-            style={{data: {stroke: 'green'}}}
+            style={{data: {fill: "url(#p1-grad)"}}}
             data={zoomedData.p1}
             y={(datum) => datum.y / maxValues.maxP}
           />}
-          {showP2 && <VictoryLine
+          {showP2 && <VictoryArea
             animate={{duration: animationDuration}}
             name='p2-line'
-            style={{data: {stroke: 'black'}}}
+            style={{data: {fill: "url(#p2-grad)"}}}
             data={zoomedData.p2}
             y={(datum) => datum.y / maxValues.maxP}
           />}
@@ -346,7 +369,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         <Heading
           title={'Time'}
           value={activeValues.current.time
-          ?? format(selectedDomain.x[0], 'yyyy-MM-dd HH:mm:ss')
+            ?? format(selectedDomain.x[0], 'yyyy-MM-dd HH:mm:ss')
           }
         />
         <hr size={1} width={'100%'}/>
