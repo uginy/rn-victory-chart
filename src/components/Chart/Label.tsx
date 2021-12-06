@@ -13,21 +13,17 @@ interface Props {
 export const Label: FC<Props> = ({text, show, setShow, value = 0, color = 'green'}) => {
   return (
     <StyledLegendLabel>
-      <View>
-        <Switch
-          style={{ transform: [{ scaleX: .8 }, { scaleY: .8 }] }}
-          trackColor={{false: "silver", true: "silver"}}
-          thumbColor={show ? color : "#f4f3f4"}
-          ios_backgroundColor="#3e3e3e"
-          onValueChange={() => setShow(prev => !prev)}
-          value={show}
-        />
-      </View>
-      <View>
+      <Switch
+        style={{transform: [{scaleX: .9}, {scaleY: .9}]}}
+        trackColor={{false: "silver", true: "silver"}}
+        thumbColor={show ? color : "#f4f3f4"}
+        ios_backgroundColor="#3e3e3e"
+        onValueChange={() => setShow(prev => !prev)}
+        value={show}
+      />
+      <View style={{ display: 'flex', flexDirection: 'row', paddingBottom: 4}}>
         <Text> {text}: </Text>
-      </View>
-      <View>
-        <Text style={{ fontWeight: 'bold' }}>{value}</Text>
+        <Text style={{fontWeight: 'bold'}}>{value}</Text>
       </View>
     </StyledLegendLabel>
   );

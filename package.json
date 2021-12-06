@@ -13,6 +13,7 @@
     "@emotion/react": "^11.7.0",
     "@emotion/styled": "^11.6.0",
     "@expo/vector-icons": "^12.0.0",
+    "@miblanchard/react-native-slider": "^2.0.2",
     "@mui/material": "^5.2.2",
     "@types/lodash-es": "^4.17.5",
     "date-fns": "^2.27.0",

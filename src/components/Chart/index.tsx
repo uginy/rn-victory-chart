@@ -1,53 +1,23 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Dimensions, StyleSheet} from 'react-native';
-import {
-  createContainer,
-  VictoryAxis,
-  VictoryChart,
-  VictoryArea,
-  VictoryTheme,
-} from 'victory-native';
-import Svg, {G, Line, Defs, LinearGradient, Stop} from 'react-native-svg';
-import {MaterialIcons} from '@expo/vector-icons';
+import {Dimensions} from 'react-native';
+import {createContainer, VictoryArea, VictoryAxis, VictoryChart, VictoryTheme,} from 'victory-native';
+import Svg, {Defs, G, Line, LinearGradient, Stop} from 'react-native-svg';
 import {debounce} from 'lodash-es';
 import {format} from 'date-fns';
 import {Label} from './Label';
-import {Legend} from './Legend';
 import {Heading} from './Heading';
 import {Mode} from './Mode';
-import {StyledLabelWrapper, StyledMainInnerWrapper, StyledOptions, StyledWrapper} from './Styles';
-
-// Settings
-const debounceOver = 100;
-const percentileK = 0.05;
-const degree = 2;
-const mainChartWidth = 750;
-const mainChartHeight = 270;
-const mainChartBottomAxisHeight = 10;
-const optionsChartHeight = 40;
-const legendChartHeight = 130;
-const tickValues = [0.25, 0.5, 0.75, 1];
-const mainChartPadding = {top: 50, left: 60, right: 50, bottom: 40};
-const mainChartDomainPadding = {x: [0, 0], y: 0};
-const animationDuration = 50;
-const activeLineColor = 'blue';
-const yDomainMarginTop = 1.1;
-
-// Mapped Object
-const mappedPropNames = {
-  flow: 'flow',
-  p1: 'pressure_p1_avg',
-  p2: 'pressure_p2_avg',
-};
-const mappedPropIds = {
-  'flow-line': 'flow',
-  'p1-line': 'p1',
-  'p2-line': 'p2',
-};
-
-// To allow use several containerComponents
-
+import {
+  StyledLabelWrapper,
+  StyledLegendInner,
+  StyledLegendWrapper,
+  StyledMainInnerWrapper,
+  StyledOptions,
+  StyledWrapper
+} from './Styles';
+import {ZoomSlider} from './ZoomSlider';
+import {settings} from './Settings';
 
 const getEntireDomain = (data: any) => {
   return {
@@ -80,8 +50,8 @@ const mappedData = (data) => {
   for (let i = 0; i < data.length; i++) {
     const x = new Date(data[i].date_time);
     const val = data[i];
-    for (const prop in mappedPropNames) {
-      newMappedData[prop].push({x, y: val[mappedPropNames[prop]]});
+    for (const prop in settings.mappedPropNames) {
+      newMappedData[prop].push({x, y: val[settings.mappedPropNames[prop]]});
     }
   }
   return newMappedData;
@@ -95,9 +65,9 @@ const filterByPrecision = (data, maxPoints) => {
   const newData = {};
   for (let prop in data) {
     if (data[prop].length > maxPoints) {
-      const k = Math.pow(degree, Math.ceil(Math.log2(data[prop].length / maxPoints)));
+      const k = Math.pow(settings.degree, Math.ceil(Math.log2(data[prop].length / maxPoints)));
       const percentile = (index) =>
-        Math.abs((data[prop][index + 1]?.y - data[prop][index]?.y)) / (data[prop][index + 1]?.y + 1) > percentileK;
+        Math.abs((data[prop][index + 1]?.y - data[prop][index]?.y)) / (data[prop][index + 1]?.y + 1) > settings.percentileK;
       newData[prop] = data[prop].filter((d, i) => ((i % k) === 0 || percentile(i)));
     } else {
       newData[prop] = data[prop];
@@ -118,11 +88,11 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const [panning, setPanning] = useState(false);
 
   const [, rerender] = useState(() => '');
-  const size = useRef({width: mainChartWidth, height: mainChartHeight});
+  const size = useRef({width: settings.mainChartWidth, height: settings.mainChartHeight});
   const zoomLevel = useRef(1);
   const activeValues = useRef({});
 
-  const redraw = debounce(rerender, debounceOver);
+  const redraw = debounce(rerender, settings.debounceOver);
 
   const CustomTooltip = (props) => {
     if (panning) {
@@ -132,20 +102,25 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     const time = format(new Date(datum.x), 'HH:mm:ss yyyy-MM-dd');
     for (const point of activePoints) {
       const id = point.childName;
-      activeValues.current[mappedPropIds[id]] = point.y;
+      activeValues.current[settings.mappedPropIds[id]] = point.y;
       activeValues.current['time'] = time;
     }
     redraw(x);
-    const height = (size.current.height || mainChartHeight)
-      - legendChartHeight - optionsChartHeight - mainChartPadding.bottom - mainChartBottomAxisHeight;
+    const height = (size.current.height || settings.mainChartHeight)
+      - settings.legendChartHeight
+      - settings.optionsChartHeight
+      - settings.mainChartPadding.bottom
+      - settings.mainChartPadding.top
+      - settings.globalPadding
+
     return (
       <Svg height={height}
-           width={size.current.width || mainChartWidth}>
+           width={size.current.width || settings.mainChartWidth}>
         <G>
           <Line transform={`translate(${x}, 50)`}
                 x1={0}
                 y1={height}
-                stroke={activeLineColor}
+                stroke={settings.activeLineColor}
                 strokeWidth={1}/>
         </G>
       </Svg>
@@ -172,11 +147,16 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       maxFlow = 1;
     }
     const maxP = maxP1 > maxP2 ? maxP1 : maxP2;
-    return {maxFlow: maxFlow * yDomainMarginTop || 1, maxP: maxP * yDomainMarginTop || 1};
+    return {maxFlow: maxFlow * settings.yDomainMarginTop || 1, maxP: maxP * settings.yDomainMarginTop || 1};
   }, [zoomedData, showP1, showP2, showFlow]);
 
   const handleZoom = domain => {
     setSelectedDomain(() => ({...domain}));
+  }
+
+  const handleScaleX = level => {
+    zoomLevel.current = level[0];
+    setSelectedDomain(zoomIt(logdata, zoomLevel.current))
   }
 
   const handleLayout = () => {
@@ -185,7 +165,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       width: w,
       height: h
     }
-    redraw();
+    redraw(Date.now().toString());
   }
   const yAccessorFlow = (datum) => datum.y / maxValues.maxFlow
   const yAccessorP = (datum) => datum.y / maxValues.maxP
@@ -198,45 +178,53 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
       setSelectedDomain(getEntireDomain(logdata));
     }
     return () => {
-      // console.log('unmounted');
       destroyed = true;
     }
   }, [logdata]);
 
+  const victoryChartHeight =
+    size.current.height
+    - settings.legendChartHeight
+    - settings.optionsChartHeight
+    - settings.mainChartPadding.top
+    - settings.globalPadding;
+
   return (
     <StyledWrapper>
-      <Legend>
-        <Heading
-          color={'grey'}
-          title={'Selected Time'}
-          value={activeValues.current.time
-            ?? format(selectedDomain.x[0], 'HH:mm:ss yyyy-MM-dd')
-          }
-        />
-        <StyledLabelWrapper>
-          <Label
-            text='flow'
-            show={showFlow}
-            setShow={setShowFlow}
-            value={activeValues.current.flow}
-            color='tomato'
+      <StyledLegendWrapper height={settings.legendChartHeight}>
+        <StyledLegendInner>
+          <Heading
+            color={'grey'}
+            title={'Selected Time'}
+            value={activeValues.current.time
+              ?? format(selectedDomain.x[0], 'HH:mm:ss yyyy-MM-dd')
+            }
           />
-          <Label
-            color='green'
-            text='P1'
-            show={showP1}
-            setShow={setShowP1}
-            value={activeValues.current.p1}
-          />
-          <Label
-            text='P2'
-            show={showP2}
-            setShow={setShowP2}
-            value={activeValues.current.p2}
-            color='black'
-          />
-        </StyledLabelWrapper>
-      </Legend>
+          <StyledLabelWrapper>
+            <Label
+              text='flow'
+              show={showFlow}
+              setShow={setShowFlow}
+              value={activeValues.current.flow}
+              color='tomato'
+            />
+            <Label
+              color='green'
+              text='P1'
+              show={showP1}
+              setShow={setShowP1}
+              value={activeValues.current.p1}
+            />
+            <Label
+              text='P2'
+              show={showP2}
+              setShow={setShowP2}
+              value={activeValues.current.p2}
+              color='black'
+            />
+          </StyledLabelWrapper>
+        </StyledLegendInner>
+      </StyledLegendWrapper>
       <StyledMainInnerWrapper>
         <Defs>
           <LinearGradient id="flow-grad" style={{transform: 'rotate(90deg)'}}>
@@ -261,13 +249,13 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         </Defs>
         <VictoryChart
           theme={VictoryTheme.material}
-          domainPadding={mainChartDomainPadding}
+          domainPadding={settings.mainChartDomainPadding}
           width={size.current.width || mainChartWidth}
-          height={(size.current.height - legendChartHeight) || mainChartHeight}
+          height={victoryChartHeight}
           scale={{x: 'time'}}
           domain={getEntireDomain(logdata)}
           responsive={true}
-          padding={mainChartPadding}
+          padding={settings.mainChartPadding}
           containerComponent={
             <VictoryZoomVoronoiContainer
               zoomDimension='x'
@@ -288,7 +276,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
           }
         >
           {showFlow && <VictoryArea
-            animate={{duration: animationDuration}}
+            animate={{duration: settings.animationDuration}}
             name='flow-line'
             data={zoomedData.flow}
             y={yAccessorFlow}
@@ -301,7 +289,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             }}
           />}
           {showP1 && <VictoryArea
-            animate={{duration: animationDuration}}
+            animate={{duration: settings.animationDuration}}
             name='p1-line'
             style={{
               data: {
@@ -314,7 +302,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             y={yAccessorP}
           />}
           {showP2 && <VictoryArea
-            animate={{duration: animationDuration}}
+            animate={{duration: settings.animationDuration}}
             name='p2-line'
             style={{
               data: {
@@ -332,8 +320,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             label='Pressure [bar]'
             dependentAxis
             domainPadding={{y: 15}}
-            tickValues={tickValues}
-            tickFormat={(t) => Number(t * maxValues.maxP / yDomainMarginTop).toFixed(1)}
+            tickValues={settings.tickValues}
+            tickFormat={(t) => Number(t * maxValues.maxP / settings.yDomainMarginTop).toFixed(1)}
             style={{
               axisLabel: {fontSize: 14, padding: 35},
               grid: {
@@ -355,8 +343,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             dependentAxis
             key='2'
             label='Flow [m³/h]'
-            offsetX={(size.current.width || mainChartWidth) - 50}
-            tickValues={tickValues}
+            offsetX={(size.current.width || settings.mainChartWidth) - 50}
+            tickValues={settings.tickValues}
             style={{
               axisLabel: {fontSize: 14, padding: -35},
               grid: {
@@ -373,9 +361,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                 textAnchor: 'start',
               },
             }}
-            tickFormat={t => Number(t * maxValues.maxFlow / yDomainMarginTop).toPrecision(2)}
+            tickFormat={t => Number(t * maxValues.maxFlow / settings.yDomainMarginTop).toPrecision(2)}
           />
-          <VictoryAxis offsetY={size.current.height - legendChartHeight - 50}
+          <VictoryAxis offsetY={victoryChartHeight - settings.mainChartPadding.top}
                        style={{tickLabels: {display: 'none'}}}
           />
           <VictoryAxis label='Time'
@@ -391,34 +379,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                        }}/>
         </VictoryChart>
 
-        <StyledOptions>
-          <MaterialIcons
-            style={styles.roundButton}
-            name="zoom-out"
-            onPress={() => {
-              if (zoomLevel.current > 1) {
-                zoomLevel.current--;
-              }
-              setSelectedDomain(zoomIt(logdata, zoomLevel.current));
-            }}/>
-          <MaterialIcons
-            style={styles.roundButton}
-            name="zoom-out-map"
-            onPress={() => {
-              zoomLevel.current = 1;
-              setSelectedDomain(getEntireDomain(logdata));
-              zoomIt(logdata, zoomLevel.current)
-            }}/>
-          <MaterialIcons
-            style={styles.roundButton}
-            name="zoom-in"
-            onPress={() => {
-              if (zoomLevel.current < 10) {
-                zoomLevel.current++;
-              }
-              setSelectedDomain(zoomIt(logdata, zoomLevel.current));
-              zoomIt(logdata, zoomLevel.current)
-            }}/>
+        <StyledOptions height={settings.optionsChartHeight}>
+          <ZoomSlider zoomLevel={zoomLevel} handleScaleX={handleScaleX}/>
           <Mode
             text={panning ? 'Zoom/Pan' : 'Select'}
             show={panning}
@@ -431,15 +393,3 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     </StyledWrapper>
   );
 }
-
-/// Just some styles
-const styles = StyleSheet.create({
-  roundButton: {
-    color: 'black',
-    fontSize: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 40,
-    padding: 3,
-  }
-});
