@@ -1,12 +1,13 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
+  createContainer,
+  VictoryArea,
   VictoryAxis,
   VictoryBrushContainer,
   VictoryChart,
   VictoryLine,
   VictoryTheme,
-  createContainer, VictoryArea,
 } from 'victory';
 import {debounce} from 'lodash';
 import {format} from 'date-fns';
@@ -22,7 +23,7 @@ const VictoryZoomVoronoiContainer = createContainer('voronoi', 'zoom');
 const getEntireDomain = (data) => {
   return {
     y: [0, 1],
-    x: [new Date(data[data.length-3].date_time), new Date(data[0].date_time)], // Reverse order in this case
+    x: [new Date(data[data.length - 3].date_time), new Date(data[0].date_time)], // Reverse order in this case
   };
 };
 
@@ -150,6 +151,8 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   const yAccessorFlow = (datum) => datum.y / maxLogsData.maxFlow;
   const yAccessorP = (datum) => datum.y / maxLogsData.maxP;
   const toolTypeAccessor = ({datum}) => `y: ${datum.y}`;
+  const tickFormatPAccessor = t => Number(t * maxValues.maxP / settings.yDomainMarginTop).toFixed(2);
+  const tickFormatFlowAccessor = t => Number(t * maxValues.maxFlow / settings.yDomainMarginTop).toFixed(2);
 
   useEffect(() => {
     setSelectedDomain(getEntireDomain(logdata));
@@ -159,29 +162,6 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
   return (
     <StyledWrapper>
       <div className="chart_main_inner_wrapper">
-        <svg style={{height: 0}}>
-          <defs>
-            <linearGradient id="flow-grad" style={{ transform: 'rotate(90deg)'}}>
-              <stop offset="0%" stopColor="#9c0000"/>
-              <stop offset="50%" stopColor="#e84d4d"/>
-              <stop offset="100%" stopColor="#ff9e9e"/>
-            </linearGradient>
-          </defs>
-          <defs>
-            <linearGradient id="p1-grad" style={{ transform: 'rotate(90deg)'}}>
-              <stop offset="0%" stopColor="#174f1a"/>
-              <stop offset="50%" stopColor="#39913d"/>
-              <stop offset="100%" stopColor="#75d97a"/>
-            </linearGradient>
-          </defs>
-          <defs>
-            <linearGradient id="p2-grad" style={{ transform: 'rotate(90deg)'}}>
-              <stop offset="0%" stopColor="#000000"/>
-              <stop offset="50%" stopColor="#555555"/>
-              <stop offset="100%" stopColor="#DDDDDD"/>
-            </linearGradient>
-          </defs>
-        </svg>
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={settings.mainChartDomainPadding}
@@ -208,27 +188,46 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             />
           }
         >
+          <defs>
+            <linearGradient id="flow-grad" style={{transform: 'rotate(90deg)'}}>
+              <stop offset="0%" stopColor="#9c0000" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="50%" stopColor="#e84d4d" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="100%" stopColor="#ff9e9e" stopOpacity={settings.chartStopOpacity}/>
+            </linearGradient>
+          </defs>
+          <defs>
+            <linearGradient id="p1-grad" style={{transform: 'rotate(90deg)', opacity: '0.4'}}>
+              <stop offset="0%" stopColor="#174f1a" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="50%" stopColor="#39913d" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="100%" stopColor="#75d97a" stopOpacity={settings.chartStopOpacity}/>
+            </linearGradient>
+          </defs>
+          <defs>
+            <linearGradient id="p2-grad" style={{transform: 'rotate(90deg)', opacity: '0.4'}}>
+              <stop offset="0%" stopColor="#000000" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="50%" stopColor="#555555" stopOpacity={settings.chartStopOpacity}/>
+              <stop offset="100%" stopColor="#AAAAAA" stopOpacity={settings.chartStopOpacity}/>
+            </linearGradient>
+          </defs>
           {showFlow && <VictoryArea
             animate={{duration: settings.animationDuration}}
             onZoomDomainChange={handleZoom}
             name='flow-line'
-            style={{
-              data: {fill: "url(#flow-grad)", width: 1},
-            }}
+            style={{data: {fill: "url(#flow-grad)", strokeWidth: 1.5, stroke: 'tomato'}}}
             data={zoomedData.flow}
             y={(datum) => datum.y / maxValues.maxFlow}
           />}
           {showP1 && <VictoryArea
             animate={{duration: settings.animationDuration}}
             name='p1-line'
-            style={{data: {fill: "url(#p1-grad)"}}}
+            style={{data: {fill: "url(#p1-grad)", strokeWidth: 1.5, stroke: 'green'}}}
             data={zoomedData.p1}
             y={(datum) => datum.y / maxValues.maxP}
           />}
           {showP2 && <VictoryArea
             animate={{duration: settings.animationDuration}}
             name='p2-line'
-            style={{data: {fill: "url(#p2-grad)"}}}
+            style={{data: {fill: "url(#p2-grad)", strokeWidth: 1.5, stroke: 'black'}}}
             data={zoomedData.p2}
             y={(datum) => datum.y / maxValues.maxP}
           />}
@@ -239,9 +238,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             dependentAxis
             domainPadding={{y: 15}}
             tickValues={settings.tickValues}
-            tickFormat={(t) => t * maxValues.maxP / settings.yDomainMarginTop}
+            tickFormat={tickFormatPAccessor}
             style={{
-              axisLabel: {fontSize: 14, padding: 35},
+              axisLabel: {fontSize: 13, padding: 39, fontWeight: 'bold'},
               grid: {
                 strokeWidth: 0, stroke: 'grey',
               },
@@ -264,7 +263,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             offsetX={settings.mainChartWidth - 50}
             tickValues={settings.tickValues}
             style={{
-              axisLabel: {fontSize: 14, padding: -35},
+              axisLabel: {fontSize: 13, padding: -45, fontWeight: 'bold'},
               grid: {
                 strokeWidth: ({tick}) => {
                   const everyFive = (Math.round(tick * 100) / 100) % 0.25;
@@ -279,19 +278,23 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                 textAnchor: 'revert',
               },
             }}
-            tickFormat={t => Number(t * maxValues.maxFlow / settings.yDomainMarginTop).toPrecision(2)}
+            tickFormat={tickFormatFlowAccessor}
           />
           <VictoryAxis offsetY={settings.mainChartHeight - 50}
                        style={{tickLabels: {display: 'none'}}}
           />
-          <VictoryAxis label='Time'
+          <VictoryAxis tickFormat={t =>
+            `${format(t, 'yyyy-MM-dd')}
+                         ${format(t, 'HH:mm:ss')}
+                         `}
+                       label='Time'
                        style={{
-                         axisLabel: {fontSize: 14, padding: 20},
+                         axisLabel: {fontSize: 14, padding: 26},
                          grid: {strokeWidth: 1, stroke: 'grey'},
                          ticks: {stroke: 'black'},
                          tickLabels: {
                            fontSize: 10,
-                           padding: 3,
+                           padding: 0,
                            textAnchor: 'middle',
                          },
                        }}/>
@@ -313,10 +316,16 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             />
           }
         >
-          <VictoryAxis label='time' style={{
-            axisLabel: {display: 'none'},
-            tickLabels: {fontSize: 8, padding: 4},
-          }}
+          <VictoryAxis
+            tickFormat={t =>
+              `${format(t, 'yyyy-MM-dd')}
+               ${format(t, 'HH:mm:ss')}
+              `}
+            label='time'
+            style={{
+              axisLabel: {display: 'none'},
+              tickLabels: {fontSize: 8, padding: 4},
+            }}
           />
           <VictoryLine
             style={{data: {stroke: 'tomato', strokeWidth: 0.7}}}

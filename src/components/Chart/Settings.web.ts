@@ -7,7 +7,7 @@ export const settings = {
 
   legendChartHeight: 80,
   mainChartWidth: 1250,
-  mainChartHeight: 500,
+  mainChartHeight: 600,
 
   zoomChartWidth: 900,
   zoomChartHeight: 100,
@@ -25,6 +25,7 @@ export const settings = {
   animationDuration: 50,
   activeLineColor: 'blue',
   yDomainMarginTop: 1.1,
+  chartStopOpacity: 0.5,
 
 // Mapped Object
   mappedPropNames: {

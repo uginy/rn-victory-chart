@@ -16,6 +16,13 @@ export const settings = {
   animationDuration: 50,
   activeLineColor: 'blue',
   yDomainMarginTop: 1.1,
+  chartColor1: 'tomato',
+  chartColor2: 'green',
+  chartColor3: 'black',
+  chartStopOpacity1: 0.99,
+  chartStopOpacity2: 0.6,
+  chartStopOpacity3: 0.4,
+  chartStrokeWidth: 1.5,
 
   mappedPropNames: {
     flow: 'flow',

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Dimensions} from 'react-native';
-import {createContainer, VictoryArea, VictoryAxis, VictoryChart, VictoryTheme,} from 'victory-native';
-import Svg, {Defs, G, Line, LinearGradient, Stop} from 'react-native-svg';
+import {createContainer, VictoryArea, VictoryAxis, VictoryChart, VictoryTheme} from 'victory-native';
+import Svg, {G, Line} from 'react-native-svg';
 import {debounce} from 'lodash-es';
 import {format} from 'date-fns';
 import {Label} from './Label';
@@ -18,6 +18,7 @@ import {
 } from './Styles';
 import {ZoomSlider} from './ZoomSlider';
 import {settings} from './Settings';
+import GradientFillDefs from './GradientFillDefs';
 
 const getEntireDomain = (data: any) => {
   return {
@@ -167,9 +168,11 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
     }
     redraw(Date.now().toString());
   }
-  const yAccessorFlow = (datum) => datum.y / maxValues.maxFlow
-  const yAccessorP = (datum) => datum.y / maxValues.maxP
+  const yAccessorFlow = (datum) => datum.y / maxValues.maxFlow;
+  const yAccessorP = (datum) => datum.y / maxValues.maxP;
   const toolTypeAccessor = ({datum}) => `y: ${datum.y}`;
+  const tickFormatPAccessor = t => Number(t * maxValues.maxP / settings.yDomainMarginTop).toFixed(2);
+  const tickFormatFlowAccessor = t => Number(t * maxValues.maxFlow / settings.yDomainMarginTop).toFixed(2);
 
   useEffect(() => {
     let destroyed = false;
@@ -226,27 +229,6 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
         </StyledLegendInner>
       </StyledLegendWrapper>
       <StyledMainInnerWrapper>
-        <Defs>
-          <LinearGradient id="flow-grad" style={{transform: 'rotate(90deg)'}}>
-            <Stop offset="0%" stopColor="#9c0000"/>
-            <Stop offset="50%" stopColor="#e84d4d"/>
-            <Stop offset="100%" stopColor="#ff9e9e"/>
-          </LinearGradient>
-        </Defs>
-        <Defs>
-          <LinearGradient id="p1-grad" style={{transform: 'rotate(90deg)'}}>
-            <Stop offset="0%" stopColor="#174f1a"/>
-            <Stop offset="50%" stopColor="#39913d"/>
-            <Stop offset="100%" stopColor="#75d97a"/>
-          </LinearGradient>
-        </Defs>
-        <Defs>
-          <LinearGradient id="p2-grad" style={{transform: 'rotate(90deg)'}}>
-            <Stop offset="0%" stopColor="#000000"/>
-            <Stop offset="50%" stopColor="#555555"/>
-            <Stop offset="100%" stopColor="#DDDDDD"/>
-          </LinearGradient>
-        </Defs>
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={settings.mainChartDomainPadding}
@@ -275,6 +257,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             />
           }
         >
+          <GradientFillDefs/>
           {showFlow && <VictoryArea
             animate={{duration: settings.animationDuration}}
             name='flow-line'
@@ -282,9 +265,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             y={yAccessorFlow}
             style={{
               data: {
-                stroke: 'tomato',
-                fill: 'tomato'
-                // fill: 'url(#flow-grad)'
+                stroke: settings.chartColor1,
+                strokeWidth: settings.chartStrokeWidth,
+                fill: 'url(#flow-grad)'
               },
             }}
           />}
@@ -293,9 +276,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             name='p1-line'
             style={{
               data: {
-                stroke: 'green',
-                fill: 'green'
-                // fill: 'url(#p1-grad)'
+                stroke: settings.chartColor2,
+                strokeWidth: settings.chartStrokeWidth,
+                fill: 'url(#p1-grad)'
               }
             }}
             data={zoomedData.p1}
@@ -306,14 +289,15 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             name='p2-line'
             style={{
               data: {
-                stroke: 'black',
-                fill: 'black'
-                // fill: 'url(#p2-grad)'
+                stroke: settings.chartColor3,
+                strokeWidth: settings.chartStrokeWidth,
+                fill: 'url(#p2-grad)'
               }
             }}
             data={zoomedData.p2}
             y={yAccessorP}
           />}
+
           <VictoryAxis
             domain={{y: [0, 1]}}
             key='1'
@@ -321,9 +305,9 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             dependentAxis
             domainPadding={{y: 15}}
             tickValues={settings.tickValues}
-            tickFormat={(t) => Number(t * maxValues.maxP / settings.yDomainMarginTop).toFixed(1)}
+            tickFormat={tickFormatPAccessor}
             style={{
-              axisLabel: {fontSize: 14, padding: 35},
+              axisLabel: {fontSize: 14, padding: 42},
               grid: {
                 strokeWidth: 0, stroke: 'grey',
               },
@@ -346,7 +330,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
             offsetX={(size.current.width || settings.mainChartWidth) - 50}
             tickValues={settings.tickValues}
             style={{
-              axisLabel: {fontSize: 14, padding: -35},
+              axisLabel: {fontSize: 14, padding: -42},
               grid: {
                 strokeWidth: ({tick}) => {
                   const everyFive = (Math.round(tick * 100) / 100) % 0.25;
@@ -361,7 +345,7 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                 textAnchor: 'start',
               },
             }}
-            tickFormat={t => Number(t * maxValues.maxFlow / settings.yDomainMarginTop).toPrecision(2)}
+            tickFormat={tickFormatFlowAccessor}
           />
           <VictoryAxis offsetY={victoryChartHeight - settings.mainChartPadding.top}
                        style={{tickLabels: {display: 'none'}}}
@@ -378,7 +362,6 @@ export default function Chart({logdata, maxVisiblePoints}: ChartProps) {
                          },
                        }}/>
         </VictoryChart>
-
         <StyledOptions height={settings.optionsChartHeight}>
           <ZoomSlider zoomLevel={zoomLevel} handleScaleX={handleScaleX}/>
           <Mode
