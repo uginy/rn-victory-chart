@@ -1,12 +1,13 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Chart from './src/components/Chart';
-import { logdata } from './src/components/Chart/mock';
+import { logdata } from './src/components/GroupBarChart/mock';
+import GroupBarChart from './src/components/GroupBarChart/index.web';
+import {chartConfig} from './src/components/GroupBarChart/chartConfig';
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <Chart logdata={logdata} maxVisiblePoints={250} />
+      <GroupBarChart logdata={logdata} chartConfig={chartConfig}/>
     </View>
   );
 }

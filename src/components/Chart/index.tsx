@@ -27,16 +27,6 @@ const getEntireDomain = (data: any) => {
   };
 };
 
-const zoomIt = (data: any, level) => {
-  const stepSize = 2 * parseInt(level);
-  const xStart = new Date(data[data.length - stepSize].date_time);
-  const xEnd = new Date(data[stepSize - 1].date_time);
-  return {
-    y: [0, 1],
-    x: [xStart, xEnd], // Reverse order in this case
-  }
-}
-
 interface ChartProps {
   logdata: any;
   maxVisiblePoints: number;
