@@ -38,4 +38,37 @@ export const styles = StyleSheet.create({
     margin: 1,
     padding: 2,
   },
+  zoomSelectorWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    padding: 10,
+    alignItems: "center",
+  },
+  legendDateWrapper: {
+    backgroundColor: "lightgrey",
+    padding: 2,
+  },
+  legendDateText: {
+    fontSize: 20,
+  },
+  legendValuesWrapper: {
+    borderWidth: 1,
+    borderColor: "lightgrey",
+    backgroundColor: "#e7e7e7",
+    margin: 2,
+    padding: 3,
+    flexDirection: "row",
+    fontSize: 15,
+    justifyContent: "space-between",
+  },
+  legendValuesTotalWrapper: {
+    borderWidth: 1,
+    borderColor: "lightgrey",
+    backgroundColor: "#b2ffae",
+    margin: 2,
+    padding: 3,
+    flexDirection: "row",
+    fontSize: 17,
+    justifyContent: "space-between",
+  },
 });

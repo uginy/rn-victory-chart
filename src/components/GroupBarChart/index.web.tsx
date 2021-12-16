@@ -1,19 +1,21 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Text, View } from "react-native";
 import {
   VictoryAxis,
   VictoryBar,
   VictoryChart,
+  VictoryLegend,
   VictoryStack,
   VictoryTheme,
   VictoryTooltip,
 } from "victory";
-import { groupBy, sortBy } from "lodash";
+import { groupBy } from "lodash";
 import { chartConfig } from "./chartConfig";
 import { settings } from "./settings";
 import { styles } from "./styles.web";
 import LegendComponent from "./Legend.web";
 import ZoomSelector from "./ZoomSelector";
+import dayjs from "dayjs";
 
 interface ChartProps {
   logdata: any;
@@ -21,18 +23,51 @@ interface ChartProps {
 }
 
 export default function GroupBarChart({ logdata }: ChartProps) {
-  const groupedData = groupBy(logdata, chartConfig.xAxisKey.key);
+  logdata = logdata.map((data: any) => {
+    const dateParsed = data[chartConfig.xAxisKey.key]
+      .split("/")
+      .reverse()
+      .join("-");
+    return {
+      ...data,
+      [chartConfig.xAxisKey.key]: dateParsed,
+    };
+  });
   const [selectedDate, setSelectedDate] = React.useState("");
-  const dataSorted = sortBy(
-    Object.entries(groupedData),
-    chartConfig.xAxisKey.key
-  ).reverse();
+  const [zoomedDomain, setZoomedDomain] = React.useState<any>(null);
+
+  const groupedData = useMemo(() => {
+    return groupBy(logdata, chartConfig.xAxisKey.key);
+  }, []);
+
+  const zoomedData = useMemo(() => {
+    let grouped = groupBy(logdata, chartConfig.xAxisKey.key);
+    if (zoomedDomain) {
+      const resultZoomed: any = {};
+      for (const date in grouped) {
+        const startDate = new Date(zoomedDomain.start);
+        const currentDate = new Date(date);
+        if (currentDate >= startDate) {
+          resultZoomed[date] = grouped[date];
+        }
+      }
+      return resultZoomed;
+    }
+    return grouped;
+  }, [zoomedDomain]);
+
+  const domain = {
+    start: new Date(
+      Object.keys(groupedData)[Object.keys(groupedData).length - 1]
+    ),
+    end: new Date(Object.keys(groupedData)[0]),
+  };
   const [displayValues, setDisplayValues] = React.useState<any>(
     () => (v: any) => v
   );
   const maxValues = useMemo(() => {
     const max = [];
-    for (const item in groupedData) {
+    for (const item in zoomedData) {
       max.push(
         groupedData[item].reduce(
           (acc, item) => acc + item[chartConfig.yAxisKey.key],
@@ -40,12 +75,8 @@ export default function GroupBarChart({ logdata }: ChartProps) {
         )
       );
     }
-    return max.sort()[0];
-  }, [groupedData]);
-
-  useEffect(() => {
-    console.log(dataSorted);
-  }, [logdata]);
+    return Math.max(...max);
+  }, [zoomedData]);
 
   return (
     <>
@@ -60,14 +91,34 @@ export default function GroupBarChart({ logdata }: ChartProps) {
             width={settings.mainChartWidth}
             height={settings.mainChartHeight}
           >
+            <VictoryLegend
+              y={10}
+              x={settings.mainChartWidth / 2 - settings.mainChartPadding.right}
+              width={settings.mainChartWidth}
+              title="Programs Title"
+              centerTitle
+              orientation="horizontal"
+              style={{ title: { fontSize: 20 } }}
+              data={[]}
+            />
             <VictoryAxis
+              label={chartConfig.yAxisKey.name}
               orientation="left"
               dependentAxis
               height={settings.mainChartHeight}
               theme={VictoryTheme.material}
               standalone={false}
+              style={{
+                axisLabel: { fontSize: 16, padding: 70, fontWeight: "bold" },
+              }}
             />
-            <VictoryAxis tickFormat={(x) => x} />
+            <VictoryAxis
+              label={chartConfig.xAxisKey.name}
+              style={{
+                axisLabel: { fontSize: 16, padding: 30, fontWeight: "bold" },
+              }}
+              tickFormat={(x) => dayjs(x).format("DD-MM-YYYY")}
+            />
             <VictoryAxis
               offsetY={settings.mainChartHeight - settings.mainChartPadding.top}
               tickFormat={() => ""}
@@ -83,66 +134,70 @@ export default function GroupBarChart({ logdata }: ChartProps) {
               theme={VictoryTheme.material}
               standalone={false}
             />
-            {dataSorted.map(([key, items], i) => (
-              <VictoryStack colorScale={chartConfig.colorScale}>
-                {items.map((item, k) => (
-                  <VictoryBar
-                    events={[
-                      {
-                        target: "data",
-                        eventHandlers: {
-                          onClick: () => {
-                            return [
-                              {
-                                target: "labels",
-                                mutation: ({ datum }) => {
-                                  // console.log(
-                                  //   "DATE",
-                                  //   datum[chartConfig.xAxisKey.key]
-                                  // );
-                                  // console.log(
-                                  //   groupedData[datum[chartConfig.xAxisKey.key]]
-                                  // );
-                                  const date = datum[chartConfig.xAxisKey.key];
-                                  setSelectedDate(() => date);
-                                  displayValues(groupedData[date]);
-                                  return null;
+            {Object.entries(zoomedData)
+              .reverse()
+              .map(([key, items], i) => (
+                <VictoryStack
+                  style={{ data: { cursor: "pointer" } }}
+                  key={`key-${key}-${i}`}
+                  colorScale={chartConfig.colorScale}
+                >
+                  {(items as [])?.map((item: any, k: number) => (
+                    <VictoryBar
+                      key={`bar-${key}-${k}`}
+                      events={[
+                        {
+                          target: "data",
+                          eventHandlers: {
+                            onClick: () => {
+                              return [
+                                {
+                                  target: "labels",
+                                  mutation: ({ datum }) => {
+                                    // console.log(
+                                    //   "DATE",
+                                    //   datum[chartConfig.xAxisKey.key]
+                                    // );
+                                    // console.log(
+                                    //   groupedData[datum[chartConfig.xAxisKey.key]]
+                                    // );
+                                    const date =
+                                      datum[chartConfig.xAxisKey.key];
+                                    setSelectedDate(() => date);
+                                    displayValues(groupedData[date]);
+                                    return null;
+                                  },
                                 },
-                              },
-                            ];
+                              ];
+                            },
                           },
                         },
-                      },
-                    ]}
-                    barWidth={40}
-                    key={`${i}-${k}`}
-                    data={[item]}
-                    x={chartConfig.xAxisKey.key}
-                    y={chartConfig.yAxisKey.key}
-                    labels={({ datum }) => {
-                      return `${datum[chartConfig.yAxisKey.name]}: ${
-                        datum[chartConfig.yAxisKey.key]
-                      }`;
-                    }}
-                    labelComponent={
-                      <VictoryTooltip dy={0} centerOffset={{ x: 25 }} />
-                    }
-                  />
-                ))}
-              </VictoryStack>
-            ))}
+                      ]}
+                      barWidth={40}
+                      data={[item]}
+                      x={chartConfig.xAxisKey.key}
+                      y={chartConfig.yAxisKey.key}
+                      labels={({ datum }) => {
+                        return `${datum[chartConfig.groupKey.key]}: ${
+                          datum[chartConfig.yAxisKey.key]
+                        }`;
+                      }}
+                      labelComponent={
+                        <VictoryTooltip dy={0} centerOffset={{ x: 25 }} />
+                      }
+                    />
+                  ))}
+                </VictoryStack>
+              ))}
           </VictoryChart>
         </View>
         <LegendComponent onDisplayValues={(f) => setDisplayValues(() => f)} />
       </View>
       <View>
         <ZoomSelector
-          dataDomain={{
-            start: new Date(selectedDate),
-            end: new Date(),
-          }}
+          dataDomain={domain}
           onDateRangeChange={(domain) => {
-            console.log(domain);
+            setZoomedDomain(domain);
           }}
         />
       </View>
@@ -155,14 +210,14 @@ export default function GroupBarChart({ logdata }: ChartProps) {
                 ? true
                 : item[chartConfig.xAxisKey.key] === selectedDate
             )
-            .map((items: any) => (
-              <View style={styles.row}>
+            .map((items: any, i: number) => (
+              <View key={`legend-${i}`} style={styles.row}>
                 <Text style={styles.column}>
                   {items[chartConfig.xAxisKey.key]}
                 </Text>
                 <Text style={styles.column}>{items[chartConfig.groupId]}</Text>
                 <Text style={styles.column}>
-                  {items[chartConfig.yAxisKey.name]}
+                  {items[chartConfig.groupKey.key]}
                 </Text>
                 <Text style={styles.column}>
                   {items[chartConfig.yAxisKey.key]}

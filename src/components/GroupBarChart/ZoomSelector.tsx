@@ -1,6 +1,7 @@
 import React from "react";
 import { Button, View } from "react-native";
 import { subDays, subMonths, subYears } from "date-fns";
+import { styles } from "./styles.web";
 
 const dateRangeAction = (domain: DateDomain, shortKey: string) => {
   switch (shortKey) {
@@ -54,8 +55,8 @@ type DateDomain = {
 const ZoomSelector = ({ dataDomain, onDateRangeChange }: ZoomSelectorProps) => {
   const [selected, setSelected] = React.useState("all");
 
+  console.log("DOMAIN", dataDomain);
   const daysHandler = (key: string) => {
-    console.log("selected", selected);
     const isDateInRange = dateRangeAction(dataDomain, key) > dataDomain.start;
     setSelected(key);
     setTimeout(() => {
@@ -68,11 +69,20 @@ const ZoomSelector = ({ dataDomain, onDateRangeChange }: ZoomSelectorProps) => {
     }, 35);
   };
   return (
-    <View style={{ flex: 1, flexDirection: "row", padding: 10 }}>
-      {daysMap.map((dayItem) => {
+    <View style={styles.zoomSelectorWrapper}>
+      {daysMap.map((dayItem, i) => {
         return (
-          <View style={{ margin: 3 }}>
+          <View
+            key={i}
+            style={{
+              margin: 3,
+              borderWidth: selected === dayItem.key ? 1 : 0,
+              borderRadius: 3,
+              borderColor: "black",
+            }}
+          >
             <Button
+              color={"grey"}
               onPress={() => daysHandler(dayItem.key)}
               title={dayItem.name}
             />
