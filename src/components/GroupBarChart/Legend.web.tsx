@@ -5,10 +5,14 @@ import dayjs from "dayjs";
 
 type LegendComponentProps = {
   onDisplayValues: (f: Function) => void;
+  defaultValues: any;
 };
 
-const LegendComponent = ({ onDisplayValues }: LegendComponentProps) => {
-  const [activeValues, setActiveValues] = React.useState<any[]>([]);
+const LegendComponent = ({
+  onDisplayValues,
+  defaultValues,
+}: LegendComponentProps) => {
+  const [activeValues, setActiveValues] = React.useState<any[]>(defaultValues);
 
   const updateValuesCallback = (activeValues: any | Object) => {
     setActiveValues(activeValues);

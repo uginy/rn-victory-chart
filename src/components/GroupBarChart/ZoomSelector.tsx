@@ -55,9 +55,8 @@ type DateDomain = {
 const ZoomSelector = ({ dataDomain, onDateRangeChange }: ZoomSelectorProps) => {
   const [selected, setSelected] = React.useState("all");
 
-  console.log("DOMAIN", dataDomain);
   const daysHandler = (key: string) => {
-    const isDateInRange = dateRangeAction(dataDomain, key) > dataDomain.start;
+    const isDateInRange = dateRangeAction(dataDomain, key) >= dataDomain.start;
     setSelected(key);
     setTimeout(() => {
       onDateRangeChange({
@@ -66,7 +65,7 @@ const ZoomSelector = ({ dataDomain, onDateRangeChange }: ZoomSelectorProps) => {
           : dataDomain.start,
         end: dataDomain.end,
       });
-    }, 35);
+    }, 0);
   };
   return (
     <View style={styles.zoomSelectorWrapper}>
