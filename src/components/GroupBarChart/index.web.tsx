@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { Text, View } from "react-native";
 import {
   VictoryAxis,
@@ -10,7 +10,6 @@ import {
   VictoryTooltip,
 } from "victory";
 import { groupBy } from "lodash";
-import { chartConfig } from "./chartConfig";
 import { settings } from "./settings";
 import { styles } from "./styles.web";
 import LegendComponent from "./Legend.web";
@@ -22,7 +21,7 @@ interface ChartProps {
   chartConfig: any;
 }
 
-export default function GroupBarChart({ logdata }: ChartProps) {
+export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
   logdata = logdata.map((data: any) => ({
     ...data,
     [chartConfig.xAxisKey.key]: data[chartConfig.xAxisKey.key]
@@ -32,12 +31,15 @@ export default function GroupBarChart({ logdata }: ChartProps) {
   }));
   const [selectedDate, setSelectedDate] = React.useState("");
   const [zoomedDomain, setZoomedDomain] = React.useState<any>(null);
+  const [displayValues, setDisplayValues] = React.useState<any>(
+    () => (v: any) => v
+  );
 
-  const groupedData = useMemo(() => {
+  const groupedData = React.useMemo(() => {
     return groupBy(logdata, chartConfig.xAxisKey.key);
   }, []);
 
-  const zoomedData = useMemo(() => {
+  const zoomedData = React.useMemo(() => {
     let grouped = groupBy(logdata, chartConfig.xAxisKey.key);
     if (zoomedDomain) {
       const resultZoomed: any = {};
@@ -59,12 +61,28 @@ export default function GroupBarChart({ logdata }: ChartProps) {
     return grouped;
   }, [zoomedDomain]);
 
-  const zoomSelectorChange = useCallback((domainRange) => {
+  const zoomSelectorChange = React.useCallback((domainRange) => {
     setSelectedDate("");
     setZoomedDomain(() => domainRange);
   }, []);
 
-  const zoomedTableData = useMemo(() => {
+  const selectedBarHandler = useCallback(
+    (datum: any) => {
+      const date = datum[chartConfig.xAxisKey.key];
+      setSelectedDate(date);
+      if (chartConfig?.cropSelected) {
+        setZoomedDomain(() => ({
+          end: new Date(date),
+          start: new Date(date),
+        }));
+      }
+      displayValues(groupedData[date]);
+      return null;
+    },
+    [displayValues]
+  );
+
+  const zoomedTableData = React.useMemo(() => {
     return logdata?.filter((item: any) =>
       !selectedDate
         ? zoomedDomain
@@ -75,29 +93,28 @@ export default function GroupBarChart({ logdata }: ChartProps) {
     );
   }, [zoomedDomain]);
 
-  const domain = {
-    start: new Date(
-      Object.keys(groupedData)[Object.keys(groupedData).length - 1]
-    ),
-    end: new Date(Object.keys(groupedData)[0]),
-  };
+  const domain = React.useMemo(
+    () => ({
+      start: new Date(
+        Object.keys(groupedData)[Object.keys(groupedData).length - 1]
+      ),
+      end: new Date(Object.keys(groupedData)[0]),
+    }),
+    []
+  );
 
-  const zoomedDataLast = useMemo(() => {
+  const zoomedDataLast = React.useMemo(() => {
     const keys = Object.keys(zoomedData);
     const defaultKey = keys[0];
     return zoomedData[defaultKey];
   }, [zoomedData]);
 
-  const [displayValues, setDisplayValues] = React.useState<any>(
-    () => (v: any) => v
-  );
-
-  const maxValues = useMemo(() => {
-    const max = [];
+  const maxValues = React.useMemo(() => {
+    const max: any = [];
     for (const item in zoomedData) {
       max.push(
         groupedData[item].reduce(
-          (acc, item) => acc + item[chartConfig.yAxisKey.key],
+          (acc, item) => acc + (item as any)[chartConfig.yAxisKey.key],
           0
         )
       );
@@ -121,7 +138,7 @@ export default function GroupBarChart({ logdata }: ChartProps) {
             <VictoryLegend
               x={settings.mainChartWidth / 2 - settings.mainChartPadding.right}
               width={settings.mainChartWidth}
-              title="Programs Title"
+              title={chartConfig.chartTitle}
               centerTitle
               orientation="horizontal"
               style={{ title: { fontSize: 20 } }}
@@ -180,17 +197,8 @@ export default function GroupBarChart({ logdata }: ChartProps) {
                                 return [
                                   {
                                     target: "labels",
-                                    mutation: ({ datum }) => {
-                                      const date =
-                                        datum[chartConfig.xAxisKey.key];
-                                      setSelectedDate(date);
-                                      setZoomedDomain(() => ({
-                                        end: new Date(date),
-                                        start: new Date(date),
-                                      }));
-                                      displayValues(groupedData[date]);
-                                      return null;
-                                    },
+                                    mutation: ({ datum }) =>
+                                      selectedBarHandler(datum),
                                   },
                                 ];
                               },

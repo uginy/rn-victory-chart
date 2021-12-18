@@ -1,29 +1,28 @@
 import React from "react";
 import { Button, View } from "react-native";
-import { subDays, subMonths, subYears } from "date-fns";
 import { styles } from "./styles.web";
+import dayjs from "dayjs";
 
 const dateRangeAction = (domain: DateDomain, shortKey: string) => {
   switch (shortKey) {
     case "1d":
-      return subDays(domain.end, 1);
+      return dayjs(domain.end).subtract(1, "day").toDate();
     case "2d":
-      return subDays(domain.end, 2);
+      return dayjs(domain.end).subtract(2, "day").toDate();
     case "7d":
-      return subDays(domain.end, 7);
+      return dayjs(domain.end).subtract(7, "day").toDate();
     case "1m":
-      return subMonths(domain.end, 1);
+      return dayjs(domain.end).subtract(1, "month").toDate();
     case "3m":
-      return subMonths(domain.end, 3);
+      return dayjs(domain.end).subtract(3, "month").toDate();
     case "6m":
-      return subMonths(domain.end, 6);
+      return dayjs(domain.end).subtract(6, "month").toDate();
     case "1y":
-      return subYears(domain.end, 1);
+      return dayjs(domain.end).subtract(1, "year").toDate();
     case "all":
       return domain.start;
-    default:
-      return domain.start;
   }
+  return domain.start;
 };
 
 const daysMap: DateMap[] = [
