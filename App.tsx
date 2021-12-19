@@ -1,17 +1,28 @@
 import React from "react";
-import { SafeAreaView, ScrollView } from "react-native";
-import { StyledWrapper } from "./src/components/Chart/Styles";
+import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { logdata } from "./src/components/GroupBarChart/mock";
-import GroupBarChart from "./src/components/GroupBarChart/index.web";
+import GroupBarChart from "./src/components/GroupBarChart/index";
 import { chartConfig } from "./chartConfig";
+
 export default function App() {
   return (
-    <SafeAreaView style={{ paddingTop: 40 }}>
-      <ScrollView>
-        <StyledWrapper>
+    <SafeAreaView>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.container}>
           <GroupBarChart logdata={logdata} chartConfig={chartConfig} />
-        </StyledWrapper>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollView: { height: "100%" },
+  container: {
+    flexDirection: "column",
+    backgroundColor: "#fff",
+    padding: 5,
+    flex: 1,
+    height: "100%",
+  },
+});

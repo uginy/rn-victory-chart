@@ -5,7 +5,7 @@ export interface TChartConfig {
   yAxisKey: { key: string; name: string };
   groupKey: { key: string; name: string };
   colorScale: string[];
-  cropSelected: boolean; // filter bars to was selected one
+  cropSelected: boolean; // filter bars to selected one when click
 }
 
 export const chartConfig: TChartConfig = {

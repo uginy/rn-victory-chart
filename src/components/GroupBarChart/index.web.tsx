@@ -10,11 +10,12 @@ import {
   VictoryTooltip,
 } from "victory";
 import { groupBy } from "lodash";
-import { settings } from "./settings";
+import { settings } from "./settings.web";
 import { styles } from "./styles.web";
-import LegendComponent from "./Legend.web";
+import LegendComponent from "./Legend";
 import ZoomSelector from "./ZoomSelector";
 import dayjs from "dayjs";
+import { abbreviateNumber } from "./helpers";
 
 interface ChartProps {
   logdata: any;
@@ -122,6 +123,17 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     return Math.max(...max);
   }, [zoomedData]);
 
+  const barWidthAccessor = React.useMemo(() => {
+    const width =
+      settings.mainChartWidth -
+      settings.mainChartPadding.left -
+      settings.mainChartPadding.right;
+    return Object.keys(zoomedData).length > 4
+      ? Math.floor(width / Object.keys(zoomedData).length - 1) -
+          settings.barsSpacing
+      : settings.barWidth;
+  }, [logdata, zoomedData]);
+
   return (
     <>
       <View style={styles.mainWrapper}>
@@ -151,8 +163,9 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
               height={settings.mainChartHeight}
               theme={VictoryTheme.material}
               standalone={false}
+              tickFormat={abbreviateNumber}
               style={{
-                axisLabel: { fontSize: 16, padding: 70, fontWeight: "bold" },
+                axisLabel: { fontSize: 16, padding: 50, fontWeight: "bold" },
               }}
             />
             <VictoryAxis
@@ -188,6 +201,11 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                   {(items as any[])?.map((item: any, k: number) => {
                     return (
                       <VictoryBar
+                        animate={{
+                          onExit: {
+                            duration: 100,
+                          },
+                        }}
                         key={`bar-${key}-${item.entity_name}-${k}`}
                         events={[
                           {
@@ -205,7 +223,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                             },
                           },
                         ]}
-                        barWidth={40}
+                        barWidth={barWidthAccessor}
                         data={[item]}
                         x={chartConfig.xAxisKey.key}
                         y={(datum) => datum[chartConfig.yAxisKey.key] ?? 0}

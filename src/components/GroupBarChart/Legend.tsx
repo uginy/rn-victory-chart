@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Text } from "react-native";
-import { styles } from "./styles.web";
+import { styles } from "./styles";
 import dayjs from "dayjs";
 
 type LegendComponentProps = {

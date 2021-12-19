@@ -12,7 +12,7 @@ export const settings = {
   zoomChartWidth: 900,
   zoomChartHeight: 100,
 
-  mainChartPadding: { left: 100, right: 50, top: 50, bottom: 50 },
+  mainChartPadding: { left: 75, right: 20, top: 50, bottom: 50 },
   mainChartDomainPadding: { x: [40, 40], y: [0, 50] },
 
   zoomChartDomainPadding: { x: [35, 35], y: 0 },
@@ -20,6 +20,8 @@ export const settings = {
 
   optionsChartHeight: 50,
   globalPadding: 10,
+  barsSpacing: 25,
+  barWidth: 30,
 
   tickValues: [0.25, 0.5, 0.75, 1],
   animationDuration: 50,

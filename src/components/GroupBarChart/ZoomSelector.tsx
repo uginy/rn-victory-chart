@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, View } from "react-native";
-import { styles } from "./styles.web";
+import { styles } from "./styles";
 import dayjs from "dayjs";
 
 const dateRangeAction = (domain: DateDomain, shortKey: string) => {
@@ -70,17 +70,9 @@ const ZoomSelector = ({ dataDomain, onDateRangeChange }: ZoomSelectorProps) => {
     <View style={styles.zoomSelectorWrapper}>
       {daysMap.map((dayItem, i) => {
         return (
-          <View
-            key={i}
-            style={{
-              margin: 3,
-              borderWidth: selected === dayItem.key ? 1 : 0,
-              borderRadius: 3,
-              borderColor: "black",
-            }}
-          >
+          <View key={i} style={styles.zoomSelectorButtonWrapper}>
             <Button
-              color={"grey"}
+              color={selected === dayItem.key ? "grey" : "silver"}
               onPress={() => daysHandler(dayItem.key)}
               title={dayItem.name}
             />

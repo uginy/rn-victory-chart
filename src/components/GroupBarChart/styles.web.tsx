@@ -15,7 +15,6 @@ export const styles = StyleSheet.create({
   legendWrapper: {
     borderWidth: 1,
     minWidth: 150,
-    flex: 1,
     margin: 4,
   },
   tableWrapper: {
@@ -43,6 +42,12 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 10,
     alignItems: "center",
+  },
+  zoomSelectorButtonWrapper: {
+    borderRadius: 0,
+    borderColor: "#000",
+    margin: 3,
+    color: "#444",
   },
   legendDateWrapper: {
     backgroundColor: "lightgrey",
