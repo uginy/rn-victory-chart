@@ -4,18 +4,16 @@ export const styles = StyleSheet.create({
   mainWrapper: {
     width: "100%",
     flexDirection: "row",
-    borderWidth: 1,
   },
   mainChartWrapper: {
     width: "100%",
     flex: 3,
-    borderWidth: 1,
     margin: 4,
   },
   legendWrapper: {
-    borderWidth: 1,
     minWidth: 150,
     margin: 4,
+    marginTop: 100,
   },
   tableWrapper: {
     flex: 1,

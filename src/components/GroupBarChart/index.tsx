@@ -95,7 +95,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
           : true
         : item[chartConfig.xAxisKey.key] === selectedDate
     );
-  }, [zoomedDomain]);
+  }, [zoomedDomain, selectedDate]);
 
   const domain = React.useMemo(
     () => ({
