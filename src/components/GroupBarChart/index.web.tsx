@@ -233,6 +233,16 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                             duration: 100,
                           },
                         }}
+                        style={{
+                          data: {
+                            fillOpacity: () => {
+                              return key !== selectedDate && selectedDate !== ""
+                                ? 0.5
+                                : 1;
+                            },
+                            fill: chartConfig.colorScale[item.entity_name],
+                          },
+                        }}
                         key={`bar-${key}-${item.entity_name}-${k}`}
                         events={[
                           {
