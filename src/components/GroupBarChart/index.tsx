@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import { Text, View } from "react-native";
 import {
   VictoryAxis,
@@ -39,11 +39,11 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     () => (v: any) => v
   );
 
-  const groupedData = React.useMemo(() => {
+  const groupedData = useMemo(() => {
     return groupBy(logdata, chartConfig.xAxisKey.key);
   }, []);
 
-  const zoomedData = React.useMemo(() => {
+  const zoomedData = useMemo(() => {
     let grouped = groupBy(logdata, chartConfig.xAxisKey.key);
     if (zoomedDomain) {
       const resultZoomed: any = {};
@@ -65,28 +65,28 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     return grouped;
   }, [zoomedDomain]);
 
-  const zoomSelectorChange = React.useCallback((domainRange) => {
+  const zoomSelectorChange = useCallback((domainRange) => {
     setSelectedDate("");
     setZoomedDomain(() => domainRange);
   }, []);
 
   const selectedBarHandler = useCallback(
     (datum: any) => {
-      const date = datum[chartConfig.xAxisKey.key];
+      const date = dayjs(datum[chartConfig.xAxisKey.key]).format("YYYY-MM-DD");
       setSelectedDate(date);
+      displayValues(groupedData[date]);
       if (chartConfig?.cropSelected) {
         setZoomedDomain(() => ({
-          end: new Date(date),
           start: new Date(date),
+          end: new Date(date),
         }));
       }
-      displayValues(groupedData[date]);
       return null;
     },
     [displayValues]
   );
 
-  const zoomedTableData = React.useMemo(() => {
+  const zoomedTableData = useMemo(() => {
     return logdata?.filter((item: any) =>
       !selectedDate
         ? zoomedDomain
@@ -97,7 +97,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     );
   }, [zoomedDomain, selectedDate]);
 
-  const domain = React.useMemo(
+  const domain = useMemo(
     () => ({
       start: new Date(
         Object.keys(groupedData)[Object.keys(groupedData).length - 1]
@@ -107,24 +107,13 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     []
   );
 
-  const zoomedDataLast = React.useMemo(() => {
+  const zoomedDataLast = useMemo(() => {
     const keys = Object.keys(zoomedData);
     const defaultKey = keys[0];
     return zoomedData[defaultKey];
   }, [zoomedData]);
 
-  const barWidthAccessor = React.useMemo(() => {
-    const width =
-      chartSize.width -
-      settings.mainChartPadding.left -
-      settings.mainChartPadding.right;
-    return Object.keys(zoomedData).length > 4
-      ? Math.floor(width / Object.keys(zoomedData).length - 1) -
-          settings.barsSpacing
-      : settings.barWidth;
-  }, [logdata, zoomedData]);
-
-  const maxValues = React.useMemo(() => {
+  const maxValues = useMemo(() => {
     const max: any = [];
     for (const item in zoomedData) {
       max.push(
@@ -144,6 +133,34 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
 
   const isBarsMoreThan = Object.keys(zoomedData).length > 4;
 
+  const barWidthAccessor = useMemo(() => {
+    const width =
+      chartSize.width -
+      settings.mainChartPadding.left -
+      settings.mainChartPadding.right;
+    return Object.keys(zoomedData).length > 4
+      ? Math.floor(width / Object.keys(zoomedData).length - 1) -
+          settings.barsSpacing
+      : settings.barWidth;
+  }, [logdata, zoomedData]);
+
+  const legendProps = useMemo(() => {
+    const groups = Object.keys(
+      groupBy(logdata, chartConfig.groupKey.key)
+    ).sort();
+    const names = groups.map((program) => ({ name: program }));
+    const colors = groups.map(
+      (program: string) => chartConfig.colorScale[program]
+    );
+    return { names, colors };
+  }, [zoomedTableData]);
+
+  const colorScaleBar = useMemo(() => {
+    return Object.keys(chartConfig.colorScale).map(
+      (color) => chartConfig.colorScale[color]
+    );
+  }, []);
+
   return (
     <>
       <View style={styles.mainWrapper}>
@@ -153,22 +170,23 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
             domain={{ y: [0, maxValues] }}
             theme={VictoryTheme.material}
             /*@ts-ignore*/
-            domainPadding={settings.mainChartDomainPadding}
+            domainPadding={{ ...settings.mainChartDomainPadding }}
             width={chartSize.width}
             height={chartSize.height}
           >
             <VictoryLegend
-              x={
-                chartSize.width / 2 -
-                settings.mainChartPadding.right -
-                settings.mainChartPadding.left
-              }
+              x={settings.mainChartPadding.left}
               width={chartSize.width}
               title={chartConfig.chartTitle}
-              centerTitle
               orientation="horizontal"
-              style={{ title: { fontSize: 20 } }}
-              data={[]}
+              centerTitle
+              style={{
+                title: { fontSize: 20 },
+                labels: { lineHeight: 0.4 },
+              }}
+              itemsPerRow={4}
+              colorScale={legendProps.colors}
+              data={legendProps.names}
             />
             <VictoryAxis
               label={chartConfig.yAxisKey.name}
@@ -221,17 +239,28 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                 <VictoryStack
                   style={{ data: { cursor: "pointer" } }}
                   key={`key-${key}-${i}`}
-                  colorScale={chartConfig.colorScale}
+                  colorScale={colorScaleBar}
                 >
                   {(items as any[])?.map((item: any, k: number) => {
                     return (
                       <VictoryBar
                         animate={{
                           onExit: {
-                            duration: 100,
+                            duration: 50,
+                          },
+                        }}
+                        style={{
+                          data: {
+                            fillOpacity: () => {
+                              return key !== selectedDate && selectedDate !== ""
+                                ? 0.5
+                                : 1;
+                            },
+                            fill: chartConfig.colorScale[item.entity_name],
                           },
                         }}
                         key={`bar-${key}-${item.entity_name}-${k}`}
+                        name={`bar-${key}-${item.entity_name}-${k}`}
                         events={[
                           {
                             target: "data",
@@ -290,7 +319,6 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
               <Text style={styles.column}>
                 {items[chartConfig.xAxisKey.key]}
               </Text>
-              <Text style={styles.column}>{items[chartConfig.groupId]}</Text>
               <Text style={styles.column}>
                 {items[chartConfig.groupKey.key]}
               </Text>

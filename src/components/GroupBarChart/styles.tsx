@@ -12,6 +12,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     margin: 4,
   },
+  legendInnerWrapper: {
+    borderWidth: 0.5,
+    borderColor: "#91A3AE",
+    padding: 2,
+  },
   tableWrapper: {
     flex: 1,
     width: "100%",
@@ -27,9 +32,11 @@ export const styles = StyleSheet.create({
   },
   column: {
     flex: 1,
-    backgroundColor: "#d4fbf8",
+    backgroundColor: "#e4e4e4",
+    borderRadius: 4,
     margin: 1,
     padding: 5,
+    textAlign: "center",
   },
   zoomSelectorWrapper: {
     flex: 1,
@@ -53,7 +60,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "lightgrey",
     backgroundColor: "#e7e7e7",
-    margin: 2,
+    marginVertical: 2,
     padding: 3,
     flexDirection: "row",
     fontSize: 15,
@@ -63,7 +70,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "lightgrey",
     backgroundColor: "#b2ffae",
-    margin: 2,
+    marginTop: 2,
     padding: 3,
     flexDirection: "row",
     fontSize: 17,

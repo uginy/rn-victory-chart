@@ -13,7 +13,13 @@ export const styles = StyleSheet.create({
   legendWrapper: {
     minWidth: 150,
     margin: 4,
-    marginTop: 100,
+    marginTop: 81,
+    flex: 0,
+  },
+  legendInnerWrapper: {
+    borderWidth: 2,
+    borderColor: "#91A3AE",
+    padding: 2,
   },
   tableWrapper: {
     flex: 1,
@@ -58,7 +64,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "lightgrey",
     backgroundColor: "#e7e7e7",
-    margin: 2,
+    marginVertical: 2,
     padding: 3,
     flexDirection: "row",
     fontSize: 15,
@@ -68,7 +74,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "lightgrey",
     backgroundColor: "#b2ffae",
-    margin: 2,
+    marginTop: 2,
     padding: 3,
     flexDirection: "row",
     fontSize: 17,

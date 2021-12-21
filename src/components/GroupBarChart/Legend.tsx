@@ -24,21 +24,23 @@ const LegendComponent = ({
 
   return (
     <View style={styles.legendWrapper}>
-      <View style={styles.legendDateWrapper}>
-        <Text style={styles.legendDateText}>
-          {dayjs(activeValues[0]?.day_date).format("DD-MM-YYYY") ||
-            dayjs(new Date()).format("DD-MM-YYYY")}
-        </Text>
-      </View>
-      {activeValues?.map((item, i) => (
-        <View key={`legend-row-${i}`} style={styles.legendValuesWrapper}>
-          <Text>{item.entity_name}</Text>
-          <Text>{item.val}</Text>
+      <View style={styles.legendInnerWrapper}>
+        <View style={styles.legendDateWrapper}>
+          <Text style={styles.legendDateText}>
+            {dayjs(activeValues[0]?.day_date).format("DD-MM-YYYY") ||
+              dayjs(new Date()).format("DD-MM-YYYY")}
+          </Text>
         </View>
-      ))}
-      <View style={styles.legendValuesTotalWrapper}>
-        <Text>Total:</Text>
-        <Text>{activeValues.reduce((a, i) => a + i.val, 0)}</Text>
+        {activeValues?.map((item, i) => (
+          <View key={`legend-row-${i}`} style={styles.legendValuesWrapper}>
+            <Text>{item.entity_name}</Text>
+            <Text>{item.val}</Text>
+          </View>
+        ))}
+        <View style={styles.legendValuesTotalWrapper}>
+          <Text>Total:</Text>
+          <Text>{activeValues.reduce((a, i) => a + i.val, 0)}</Text>
+        </View>
       </View>
     </View>
   );
