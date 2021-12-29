@@ -1,11 +1,12 @@
 import { Box, FormControl, InputLabel, MenuItem } from "@mui/material";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import React from "react";
+import { ETimeSlice } from "./interface";
 
 type Props = {
-  timeSlice: string;
+  timeSlice: ETimeSlice;
   timeSliceSet: { [key: string]: number };
-  onTimeSliceChange: (key: string) => void;
+  onTimeSliceChange: (key: ETimeSlice) => void;
 };
 
 export const TimeScaleSelector = ({ timeSlice, onTimeSliceChange }: Props) => {
@@ -25,12 +26,14 @@ export const TimeScaleSelector = ({ timeSlice, onTimeSliceChange }: Props) => {
           value={timeSlice}
           label="Time Slice"
           onChange={(e: SelectChangeEvent) => {
-            onTimeSliceChange(e.target.value as string);
+            onTimeSliceChange(e.target.value as ETimeSlice);
           }}
         >
-          <MenuItem value={"15min"}>15 min</MenuItem>
-          <MenuItem value={"1hour"}>1 hour</MenuItem>
-          <MenuItem value={"1day"}>1 day</MenuItem>
+          <MenuItem value={ETimeSlice["15m"]}>15 min</MenuItem>
+          <MenuItem value={ETimeSlice["30m"]}>30 min</MenuItem>
+          <MenuItem value={ETimeSlice["1h"]}>1 hour</MenuItem>
+          <MenuItem value={ETimeSlice["3h"]}>3 hours</MenuItem>
+          <MenuItem value={ETimeSlice["1d"]}>1 day</MenuItem>
         </Select>
       </FormControl>
     </Box>

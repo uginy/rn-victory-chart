@@ -15,8 +15,8 @@ import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
 import Box from "@mui/material/Box";
 import dayjs from "dayjs";
+import { ETimeSlice } from "./src/components/GroupBarChart/interface";
 
-// const data = logdata;
 const data = JSON.parse(JSON.stringify(dataJson)).sort((a: any, b: any) =>
   new Date(a.start_date_time) > new Date(b.start_date_time) ? 1 : -1
 );
@@ -26,12 +26,13 @@ const toDate = dayjs(new Date()).toDate();
 
 export default function App() {
   const [project, setProject] = React.useState("all");
-  const [timeSlice, setTimeSlice] = React.useState("15min");
+  const [timeSlice, setTimeSlice] = React.useState(ETimeSlice["15m"]);
   const [dateRange, setDateRange] = React.useState<DateRange<Date>>([
     fromDate,
     toDate,
   ]);
 
+  console.log(timeSlice);
   const logDataMemo = React.useMemo(() => {
     if (project !== "" && project !== "all") {
       return data.filter((pr: any) => pr.project_id === project);
@@ -76,7 +77,7 @@ export default function App() {
               <TimeScaleSelector
                 timeSliceSet={timeSliceSet}
                 timeSlice={timeSlice}
-                onTimeSliceChange={(e) => {
+                onTimeSliceChange={(e: ETimeSlice) => {
                   setTimeSlice(e);
                 }}
               />

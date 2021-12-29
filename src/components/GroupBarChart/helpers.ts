@@ -1,4 +1,4 @@
-import { TChartConfig } from "./interface";
+import { ETimeSlice, TChartConfig } from "./interface";
 import { groupBy } from "lodash-es";
 
 export const abbreviateNumber = (value: any) => {
@@ -15,9 +15,14 @@ export const abbreviateNumber = (value: any) => {
 };
 
 export const timeSliceSet: any = {
-  "15min": 900000,
-  "1hour": 3600000,
-  "1day": 86400000,
+  [ETimeSlice["15m"]]: 900000,
+  [ETimeSlice["30m"]]: 1800000,
+  [ETimeSlice["1h"]]: 3600000,
+  [ETimeSlice["3h"]]: 10800000,
+  [ETimeSlice["1d"]]: 86400000,
+  [ETimeSlice["1w"]]: 7 * 86400000,
+  [ETimeSlice["1mon"]]: 30 * 86400000,
+  [ETimeSlice["1y"]]: 365 * 86400000,
 };
 
 export const groupByTimeSlice = (

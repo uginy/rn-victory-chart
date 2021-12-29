@@ -16,11 +16,12 @@ import ZoomSelector from "./ZoomSelector";
 import dayjs from "dayjs";
 import { abbreviateNumber, colorGenerator, groupByTimeSlice } from "./helpers";
 import StickyTable from "./StyckyTable";
+import { ETimeSlice, TChartConfig } from "./interface";
 
 interface ChartProps {
   logdata: any;
-  chartConfig: any;
-  timeSlice: string;
+  chartConfig: TChartConfig;
+  timeSlice: ETimeSlice;
 }
 
 export default function GroupBarChart({
@@ -35,6 +36,15 @@ export default function GroupBarChart({
     return groupByTimeSlice(logdata, chartConfig, timeSlice);
   }, [logdata, timeSlice]);
 
+  const isSmallTimeFrame = useMemo(() => {
+    return [
+      ETimeSlice["15m"],
+      ETimeSlice["30m"],
+      ETimeSlice["1h"],
+      ETimeSlice["3h"],
+    ].includes(timeSlice);
+  }, [timeSlice]);
+
   const zoomedData = useMemo(() => {
     if (zoomedDomain) {
       const resultZoomed: any = {};
@@ -48,7 +58,7 @@ export default function GroupBarChart({
       }
       return resultZoomed;
     }
-    if (timeSlice !== "1day") {
+    if (isSmallTimeFrame) {
       const resultSliced: any = {};
       for (const date in groupedData) {
         const startDate = new Date(Object.keys(groupedData)[0]);
@@ -192,7 +202,7 @@ export default function GroupBarChart({
                 axisLabel: { fontSize: 16, padding: 70, fontWeight: "bold" },
               }}
               tickFormat={(x) => {
-                if (timeSlice === "15min" || timeSlice === "1hour") {
+                if (isSmallTimeFrame) {
                   return dayjs(x).format("HH:mm");
                 }
                 return dayjs(x).format("DD-MM-YYYY");
@@ -297,7 +307,6 @@ export default function GroupBarChart({
           onDateRangeChange={zoomSelectorChange}
         />
       </View>
-
       <View style={styles.tableWrapper}>
         <StickyTable rows={zoomedTableData} />
       </View>
