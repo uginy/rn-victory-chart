@@ -56,7 +56,8 @@ export default function GroupBarChart({
   }, []);
 
   const selectedBarHandler = useCallback((datum: any) => {
-    const fixedDate = datum.xName.replaceAll(/T([0-9]):/g, "T0$1:");
+    let fixedDate = datum.xName.replaceAll(/T([0-9]{1}):/g, "T0$1:");
+    fixedDate = fixedDate.replaceAll(/:([0-9]{1}):/g, ":0$1:");
     setSelectedDate(fixedDate);
     return null;
   }, []);
