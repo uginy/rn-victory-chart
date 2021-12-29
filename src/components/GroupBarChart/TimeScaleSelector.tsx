@@ -14,7 +14,7 @@ export const TimeScaleSelector = ({ timeSlice, onTimeSliceChange }: Props) => {
       <FormControl style={{ width: "100%" }}>
         <InputLabel
           id="select-timescale"
-          style={{ backgroundColor: "white", paddingRight: 5 }}
+          style={{ backgroundColor: "#f1f1f1", paddingRight: 5 }}
         >
           Select TimeScale
         </InputLabel>

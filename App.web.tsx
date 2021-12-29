@@ -26,7 +26,7 @@ const fromDate = dayjs(new Date()).subtract(3, "days").toDate();
 const toDate = dayjs(new Date()).toDate();
 
 export default function App() {
-  const [project, setProject] = React.useState("");
+  const [project, setProject] = React.useState("all");
   const [timeSlice, setTimeSlice] = React.useState("15min");
   const [dateRange, setDateRange] = React.useState<DateRange<Date>>([
     fromDate,
@@ -71,28 +71,32 @@ export default function App() {
           project={project}
           onProjectChange={(e) => setProject(e)}
         />
-        <TimeScaleSelector
-          timeSliceSet={timeSliceSet}
-          timeSlice={timeSlice}
-          onTimeSliceChange={(e) => {
-            setTimeSlice(e);
-          }}
-        />
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DateRangePicker
-            startText="From"
-            endText="To"
-            value={dateRange}
-            onChange={dateRangeHandler}
-            renderInput={(startProps: any, endProps: any) => (
-              <React.Fragment>
-                <TextField {...startProps} />
-                <Box sx={{ mx: 2 }}> ... </Box>
-                <TextField {...endProps} />
-              </React.Fragment>
-            )}
-          />
-        </LocalizationProvider>
+        <View style={styles.controls}>
+          <View style={styles.timeSlice}>
+            <TimeScaleSelector
+              timeSliceSet={timeSliceSet}
+              timeSlice={timeSlice}
+              onTimeSliceChange={(e) => {
+                setTimeSlice(e);
+              }}
+            />
+          </View>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DateRangePicker
+              startText="From"
+              endText="To"
+              value={dateRange}
+              onChange={dateRangeHandler}
+              renderInput={(startProps: any, endProps: any) => (
+                <React.Fragment>
+                  <TextField {...startProps} />
+                  <Box sx={{ mx: 2 }}> ... </Box>
+                  <TextField {...endProps} />
+                </React.Fragment>
+              )}
+            />
+          </LocalizationProvider>
+        </View>
       </View>
       <GroupBarChart
         logdata={logDataMemo}
@@ -107,14 +111,21 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     flex: 1,
-    padding: "1rem",
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
   filter: {
     width: "100%",
+    backgroundColor: "#f1f1f1",
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    padding: 16,
+    justifyContent: "space-around",
+  },
+  controls: {
+    flexDirection: "row",
+  },
+  timeSlice: {
+    paddingHorizontal: 28,
   },
 });

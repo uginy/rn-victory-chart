@@ -38,7 +38,7 @@ const LegendComponent = ({
         </View>
         {activeValues?.map((item, i) => (
           <View key={`legend-row-${i}`} style={styles.legendValuesWrapper}>
-            <Text>{item[chartConfig.groupKey.key]}</Text>
+            <Text>{item[chartConfig.groupKey.name]}</Text>
             <Text>{item[chartConfig.yAxisKey.key]}</Text>
           </View>
         ))}

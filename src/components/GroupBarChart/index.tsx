@@ -146,7 +146,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
 
   const legendProps = useMemo(() => {
     const groups = Object.keys(
-      groupBy(logdata, chartConfig.groupKey.key)
+      groupBy(logdata, chartConfig.groupKey.name)
     ).sort();
     const names = groups.map((program) => ({ name: program }));
     const colors = groups.map(
@@ -282,7 +282,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                         x={chartConfig.xAxisKey.key}
                         y={(datum) => datum[chartConfig.yAxisKey.key] ?? 0}
                         labels={({ datum }) => {
-                          return `${datum[chartConfig.groupKey.key]}: ${
+                          return `${datum[chartConfig.groupKey.name]}: ${
                             datum[chartConfig.yAxisKey.key]
                           }`;
                         }}
@@ -301,6 +301,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
           </VictoryChart>
         </View>
         <LegendComponent
+          chartConfig={chartConfig}
           defaultValues={zoomedDataLast}
           onDisplayValues={(f) => setDisplayValues(() => f)}
         />
@@ -320,7 +321,7 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
                 {items[chartConfig.xAxisKey.key]}
               </Text>
               <Text style={styles.column}>
-                {items[chartConfig.groupKey.key]}
+                {items[chartConfig.groupKey.name]}
               </Text>
               <Text style={styles.column}>
                 {items[chartConfig.yAxisKey.key]}

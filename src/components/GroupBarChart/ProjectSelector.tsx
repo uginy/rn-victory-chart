@@ -17,7 +17,7 @@ export const ProjectSelector = ({
       <FormControl style={{ width: "100%" }}>
         <InputLabel
           id="select-projects"
-          style={{ backgroundColor: "white", paddingRight: 5 }}
+          style={{ backgroundColor: "#f1f1f1", paddingRight: 7 }}
         >
           Select Project
         </InputLabel>

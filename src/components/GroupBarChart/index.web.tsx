@@ -14,7 +14,7 @@ import { settings } from "./settings.web";
 import { styles } from "./styles.web";
 import ZoomSelector from "./ZoomSelector";
 import dayjs from "dayjs";
-import { abbreviateNumber, groupByTimeSlice } from "./helpers";
+import { abbreviateNumber, colorGenerator, groupByTimeSlice } from "./helpers";
 
 interface ChartProps {
   logdata: any;
@@ -71,7 +71,7 @@ export default function GroupBarChart({
           : true;
       });
     }
-    console.log(zoomedData, selectedDate);
+
     return sortBy(zoomedData[selectedDate], chartConfig.xAxisKey.key);
   }, [zoomedDomain, selectedDate, logdata]);
 
@@ -103,19 +103,27 @@ export default function GroupBarChart({
   }, [zoomedData]);
 
   const legendProps = useMemo(() => {
-    const groups = Object.keys(
-      groupBy(logdata, chartConfig.groupKey.key)
-    ).sort();
-    const names = groups.map((program) => ({ name: program }));
-    const colors = groups.map((_, i: number) => chartConfig.colorScale[i]);
+    const grouped: any = groupBy(logdata, chartConfig.groupKey.key);
 
-    return { names, colors };
+    const colorMapped: any = {};
+    Object.entries(grouped).forEach(([el, items]: any, i: number) => {
+      colorMapped[el] = {
+        name: items[0][chartConfig.groupKey.name],
+        color: chartConfig.colorScale[i + 1] ?? colorGenerator()[i + 1].color,
+      };
+    });
+    const colors = Object.keys(colorMapped).map(
+      (el: any) => colorMapped[el].color
+    );
+    const names = Object.keys(colorMapped).map((el: any) => ({
+      name: colorMapped[el].name,
+    }));
+
+    return { names, colors, colorMapped };
   }, [zoomedTableData]);
 
   const colorScaleBar = useMemo(() => {
-    return Object.keys(chartConfig.colorScale).map(
-      (color) => chartConfig.colorScale[color]
-    );
+    return legendProps.colors;
   }, []);
 
   return (
@@ -141,7 +149,7 @@ export default function GroupBarChart({
                 title: { fontSize: 20 },
                 labels: { lineHeight: 0.4 },
               }}
-              itemsPerRow={8}
+              itemsPerRow={6}
               colorScale={legendProps.colors}
               data={legendProps.names}
             />
@@ -160,8 +168,13 @@ export default function GroupBarChart({
             <VictoryAxis
               label={chartConfig.xAxisKey.name}
               style={{
-                tickLabels: { angle: "-45", textAnchor: "end", fontSize: 8 },
-                axisLabel: { fontSize: 16, padding: 90, fontWeight: "bold" },
+                tickLabels: {
+                  angle: "-45",
+                  textAnchor: "end",
+                  fontSize: 8,
+                  padding: 4,
+                },
+                axisLabel: { fontSize: 16, padding: 70, fontWeight: "bold" },
               }}
               tickFormat={(x) => {
                 if (timeSlice === "15min" || timeSlice === "1hour") {
@@ -199,14 +212,13 @@ export default function GroupBarChart({
                       <VictoryBar
                         style={{
                           data: {
-                            fillOpacity: () => {
-                              return key !== selectedDate && selectedDate !== ""
+                            fillOpacity: () =>
+                              key !== selectedDate && selectedDate !== ""
                                 ? 0.5
-                                : 1;
-                            },
-                            fill: chartConfig.colorScale[
+                                : 1,
+                            fill: legendProps.colorMapped[
                               item[chartConfig.groupKey.key]
-                            ],
+                            ].color,
                           },
                         }}
                         key={`bar-${key}-${
@@ -243,7 +255,7 @@ export default function GroupBarChart({
                         x={() => key}
                         y={(datum) => datum[chartConfig.yAxisKey.key] ?? 0}
                         labels={({ datum }) => {
-                          return `${datum[chartConfig.groupKey.key]}: ${
+                          return `${datum[chartConfig.groupKey.name]}: ${
                             datum[chartConfig.yAxisKey.key]
                           }`;
                         }}
@@ -289,7 +301,7 @@ export default function GroupBarChart({
               <Text style={styles.column}>{items["project_id"]}</Text>
               <Text style={styles.column}>{items["project_name"]}</Text>
               <Text style={styles.column}>
-                {items[chartConfig.groupKey.key]}
+                {items[chartConfig.groupKey.name]}
               </Text>
               <Text style={styles.column}>
                 {items[chartConfig.yAxisKey.key]}
