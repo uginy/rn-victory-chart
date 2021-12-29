@@ -10,7 +10,7 @@ export const chartConfig: TChartConfig = {
   colorScale: {
     1: "purple",
     2: "green",
-    3: "blue",
+    3: "lightblue",
     4: "red",
     5: "orange",
     6: "black",

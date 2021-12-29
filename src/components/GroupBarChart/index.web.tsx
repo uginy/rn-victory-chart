@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import {
   VictoryAxis,
   VictoryBar,
@@ -15,6 +15,7 @@ import { styles } from "./styles.web";
 import ZoomSelector from "./ZoomSelector";
 import dayjs from "dayjs";
 import { abbreviateNumber, colorGenerator, groupByTimeSlice } from "./helpers";
+import StickyTable from "./StyckyTable";
 
 interface ChartProps {
   logdata: any;
@@ -46,6 +47,19 @@ export default function GroupBarChart({
         }
       }
       return resultZoomed;
+    }
+    if (timeSlice !== "1day") {
+      const resultSliced: any = {};
+      for (const date in groupedData) {
+        const startDate = new Date(Object.keys(groupedData)[0]);
+        const endDate = new Date(Object.keys(groupedData)[0]);
+        endDate.setHours(23, 59, 59, 999);
+        const currentDate = new Date(date);
+        if (startDate <= currentDate && currentDate <= endDate) {
+          resultSliced[date] = groupedData[date];
+        }
+      }
+      return resultSliced;
     }
     return groupedData;
   }, [zoomedDomain, logdata, timeSlice]);
@@ -109,7 +123,10 @@ export default function GroupBarChart({
     Object.entries(grouped).forEach(([el, items]: any, i: number) => {
       colorMapped[el] = {
         name: items[0][chartConfig.groupKey.name],
-        color: chartConfig.colorScale[i + 1] ?? colorGenerator()[i + 1].color,
+        color:
+          chartConfig.colorScale[i + 1] ??
+          colorGenerator()[i + 1].color ??
+          "black",
       };
     });
     const colors = Object.keys(colorMapped).map(
@@ -122,10 +139,6 @@ export default function GroupBarChart({
     return { names, colors, colorMapped };
   }, [zoomedTableData]);
 
-  const colorScaleBar = useMemo(() => {
-    return legendProps.colors;
-  }, []);
-
   return (
     <>
       <View style={styles.mainWrapper}>
@@ -133,6 +146,8 @@ export default function GroupBarChart({
           <VictoryChart
             padding={settings.mainChartPadding}
             domain={{ y: [0, maxValues] }}
+            minDomain={{ x: 0 }}
+            maxDomain={{ x: Object.keys(zoomedData).length + 1 }}
             theme={VictoryTheme.material}
             /*@ts-ignore*/
             domainPadding={settings.mainChartDomainPadding}
@@ -146,8 +161,8 @@ export default function GroupBarChart({
               orientation="horizontal"
               centerTitle
               style={{
-                title: { fontSize: 20 },
-                labels: { lineHeight: 0.4 },
+                title: { fontSize: 16 },
+                labels: { lineHeight: 0.15 },
               }}
               itemsPerRow={6}
               colorScale={legendProps.colors}
@@ -178,7 +193,7 @@ export default function GroupBarChart({
               }}
               tickFormat={(x) => {
                 if (timeSlice === "15min" || timeSlice === "1hour") {
-                  return dayjs(x).format("DD-MM-YYYY HH:mm");
+                  return dayjs(x).format("HH:mm");
                 }
                 return dayjs(x).format("DD-MM-YYYY");
               }}
@@ -205,7 +220,7 @@ export default function GroupBarChart({
                   style={{ data: { cursor: "pointer" } }}
                   key={`key-${key}-${i}`}
                   animate={{ duration: 50 }}
-                  colorScale={colorScaleBar}
+                  colorScale={legendProps.colors}
                 >
                   {(items as any[])?.map((item: any, k: number) => {
                     return (
@@ -216,9 +231,10 @@ export default function GroupBarChart({
                               key !== selectedDate && selectedDate !== ""
                                 ? 0.5
                                 : 1,
-                            fill: legendProps.colorMapped[
-                              item[chartConfig.groupKey.key]
-                            ].color,
+                            fill:
+                              legendProps.colorMapped[
+                                item[chartConfig.groupKey.key]
+                              ].color ?? "black",
                           },
                         }}
                         key={`bar-${key}-${
@@ -283,32 +299,7 @@ export default function GroupBarChart({
       </View>
 
       <View style={styles.tableWrapper}>
-        <View style={styles.table}>
-          <View style={styles.rowHeader}>
-            <Text style={styles.columnHeader}>{chartConfig.xAxisKey.name}</Text>
-            <Text style={styles.columnHeader}>ProjectID</Text>
-            <Text style={styles.columnHeader}>ProjectName</Text>
-            <Text style={styles.columnHeader}>ProgramName</Text>
-            <Text style={styles.columnHeader}>Amount</Text>
-          </View>
-          {zoomedTableData?.map((items: any, i: number) => (
-            <View key={`legend-${i}`} style={styles.row}>
-              <Text style={styles.column}>
-                {dayjs(items[chartConfig.xAxisKey.key]).format(
-                  "YYYY-MM-DD HH:mm"
-                )}
-              </Text>
-              <Text style={styles.column}>{items["project_id"]}</Text>
-              <Text style={styles.column}>{items["project_name"]}</Text>
-              <Text style={styles.column}>
-                {items[chartConfig.groupKey.name]}
-              </Text>
-              <Text style={styles.column}>
-                {items[chartConfig.yAxisKey.key]}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <StickyTable rows={zoomedTableData} />
       </View>
     </>
   );

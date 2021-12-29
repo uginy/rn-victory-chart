@@ -24,6 +24,7 @@ export const styles = StyleSheet.create({
   tableWrapper: {
     flex: 1,
     width: "100%",
+    padding: 10,
   },
   table: {
     flexDirection: "column",

@@ -8,6 +8,7 @@ import { ProjectSelector } from "./src/components/GroupBarChart/ProjectSelector"
 import { TimeScaleSelector } from "./src/components/GroupBarChart/TimeScaleSelector";
 import { timeSliceSet } from "./src/components/GroupBarChart/helpers";
 
+import { StyledEngineProvider } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import DateRangePicker, { DateRange } from "@mui/lab/DateRangePicker";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
@@ -16,11 +17,9 @@ import Box from "@mui/material/Box";
 import dayjs from "dayjs";
 
 // const data = logdata;
-const data = JSON.parse(JSON.stringify(dataJson))
-  .sort((a: any, b: any) =>
-    new Date(a.start_date_time) > new Date(b.start_date_time) ? 1 : -1
-  )
-  .slice(0, 200);
+const data = JSON.parse(JSON.stringify(dataJson)).sort((a: any, b: any) =>
+  new Date(a.start_date_time) > new Date(b.start_date_time) ? 1 : -1
+);
 
 const fromDate = dayjs(new Date()).subtract(3, "days").toDate();
 const toDate = dayjs(new Date()).toDate();
@@ -62,48 +61,51 @@ export default function App() {
       setDateRange(value);
     }
   }, []);
-  // console.log(timeSlice);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.filter}>
-        <ProjectSelector
-          projectList={projectList}
-          project={project}
-          onProjectChange={(e) => setProject(e)}
-        />
-        <View style={styles.controls}>
-          <View style={styles.timeSlice}>
-            <TimeScaleSelector
-              timeSliceSet={timeSliceSet}
-              timeSlice={timeSlice}
-              onTimeSliceChange={(e) => {
-                setTimeSlice(e);
-              }}
-            />
+    <StyledEngineProvider injectFirst>
+      <View style={styles.container}>
+        <View style={styles.filter}>
+          <ProjectSelector
+            projectList={projectList}
+            project={project}
+            onProjectChange={(e) => setProject(e)}
+          />
+          <View style={styles.controls}>
+            <View style={styles.timeSlice}>
+              <TimeScaleSelector
+                timeSliceSet={timeSliceSet}
+                timeSlice={timeSlice}
+                onTimeSliceChange={(e) => {
+                  setTimeSlice(e);
+                }}
+              />
+            </View>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DateRangePicker
+                startText="From"
+                endText="To"
+                value={dateRange}
+                onChange={dateRangeHandler}
+                renderInput={(startProps: any, endProps: any) => (
+                  <React.Fragment>
+                    <TextField {...startProps} />
+                    <Box sx={{ mx: 2 }}> ... </Box>
+                    <TextField {...endProps} />
+                  </React.Fragment>
+                )}
+              />
+            </LocalizationProvider>
           </View>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DateRangePicker
-              startText="From"
-              endText="To"
-              value={dateRange}
-              onChange={dateRangeHandler}
-              renderInput={(startProps: any, endProps: any) => (
-                <React.Fragment>
-                  <TextField {...startProps} />
-                  <Box sx={{ mx: 2 }}> ... </Box>
-                  <TextField {...endProps} />
-                </React.Fragment>
-              )}
-            />
-          </LocalizationProvider>
         </View>
+
+        <GroupBarChart
+          logdata={logDataMemo}
+          chartConfig={chartConfig}
+          timeSlice={timeSlice}
+        />
       </View>
-      <GroupBarChart
-        logdata={logDataMemo}
-        chartConfig={chartConfig}
-        timeSlice={timeSlice}
-      />
-    </View>
+    </StyledEngineProvider>
   );
 }
 

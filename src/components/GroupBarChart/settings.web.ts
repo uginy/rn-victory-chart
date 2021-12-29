@@ -20,7 +20,7 @@ export const settings = {
 
   optionsChartHeight: 50,
   globalPadding: 10,
-  barsSpacing: 3,
+  barsSpacing: 10,
   barWidth: 30,
 
   tickValues: [0.25, 0.5, 0.75, 1],
