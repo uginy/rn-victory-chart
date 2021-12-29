@@ -1,23 +1,120 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
-import { logdata } from "./src/components/GroupBarChart/mock";
 import GroupBarChart from "./src/components/GroupBarChart/index.web";
 import { chartConfig } from "./chartConfig";
+const dataJson = require("./assets/fixtures/data.json");
+import { groupBy } from "lodash-es";
+import { ProjectSelector } from "./src/components/GroupBarChart/ProjectSelector";
+import { TimeScaleSelector } from "./src/components/GroupBarChart/TimeScaleSelector";
+import { timeSliceSet } from "./src/components/GroupBarChart/helpers";
+
+import TextField from "@mui/material/TextField";
+import DateRangePicker, { DateRange } from "@mui/lab/DateRangePicker";
+import AdapterDateFns from "@mui/lab/AdapterDateFns";
+import LocalizationProvider from "@mui/lab/LocalizationProvider";
+import Box from "@mui/material/Box";
+import dayjs from "dayjs";
+
+// const data = logdata;
+const data = JSON.parse(JSON.stringify(dataJson))
+  .sort((a: any, b: any) =>
+    new Date(a.start_date_time) > new Date(b.start_date_time) ? 1 : -1
+  )
+  .slice(0, 100);
+
+const fromDate = dayjs(new Date()).subtract(3, "days").toDate();
+const toDate = dayjs(new Date()).subtract(2, "days").toDate();
 
 export default function App() {
+  const [project, setProject] = React.useState("");
+  const [timeSlice, setTimeSlice] = React.useState("15min");
+  const [dateRange, setDateRange] = React.useState<DateRange<Date>>([
+    fromDate,
+    toDate,
+  ]);
+
+  const logDataMemo = React.useMemo(() => {
+    if (project !== "" && project !== "all") {
+      return data.filter((pr: any) => pr.project_id === project);
+    }
+    if (dateRange[0] !== fromDate) {
+      return data.filter((pr: any) => {
+        const startDate = dateRange[0] ?? fromDate;
+        const endDate = dateRange[1] ?? toDate;
+        const currentDate = dayjs(pr?.start_date_time).toDate();
+        return startDate <= currentDate && currentDate <= endDate;
+      });
+    }
+    return data;
+  }, [project, data, timeSlice, dateRange]);
+
+  const projectList = React.useMemo(() => {
+    return Object.entries(groupBy(data, chartConfig.project.key)).map(
+      ([id, items]: any) => ({
+        id,
+        name: items[0].project_name,
+      })
+    );
+  }, []);
+
+  const dateRangeHandler = useCallback((value: any) => {
+    if (value[1] !== null) {
+      setDateRange(value);
+    }
+  }, []);
+  // console.log(timeSlice);
   return (
     <View style={styles.container}>
-      <GroupBarChart logdata={logdata} chartConfig={chartConfig} />
+      <View style={styles.filter}>
+        <ProjectSelector
+          projectList={projectList}
+          project={project}
+          onProjectChange={(e) => setProject(e)}
+        />
+        <TimeScaleSelector
+          timeSliceSet={timeSliceSet}
+          timeSlice={timeSlice}
+          onTimeSliceChange={(e) => {
+            setTimeSlice(e);
+          }}
+        />
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DateRangePicker
+            startText="From"
+            endText="To"
+            value={dateRange}
+            onChange={dateRangeHandler}
+            renderInput={(startProps: any, endProps: any) => (
+              <React.Fragment>
+                <TextField {...startProps} />
+                <Box sx={{ mx: 2 }}> ... </Box>
+                <TextField {...endProps} />
+              </React.Fragment>
+            )}
+          />
+        </LocalizationProvider>
+      </View>
+      <GroupBarChart
+        logdata={logDataMemo}
+        chartConfig={chartConfig}
+        timeSlice={timeSlice}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     flex: 1,
     padding: "1rem",
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  filter: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-evenly",
   },
 });

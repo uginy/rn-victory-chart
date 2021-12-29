@@ -35,11 +35,25 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
-  column: {
+  rowHeader: {
     flex: 1,
-    backgroundColor: "#DDD",
+    flexDirection: "row",
+    justifyContent: "center",
+    textAlign: "center",
+  },
+  columnHeader: {
+    flex: 1,
+    backgroundColor: "#a7b99f",
     margin: 1,
     padding: 2,
+    textAlign: "center",
+  },
+  column: {
+    flex: 1,
+    backgroundColor: "#eeeeee",
+    margin: 1,
+    padding: 2,
+    textAlign: "center",
   },
   zoomSelectorWrapper: {
     flex: 1,
