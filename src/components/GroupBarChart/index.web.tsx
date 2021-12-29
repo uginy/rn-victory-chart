@@ -9,7 +9,7 @@ import {
   VictoryTheme,
   VictoryTooltip,
 } from "victory";
-import { groupBy } from "lodash";
+import { groupBy, sortBy } from "lodash";
 import { settings } from "./settings.web";
 import { styles } from "./styles.web";
 import ZoomSelector from "./ZoomSelector";
@@ -29,9 +29,6 @@ export default function GroupBarChart({
 }: ChartProps) {
   const [selectedDate, setSelectedDate] = React.useState("");
   const [zoomedDomain, setZoomedDomain] = React.useState<any>(null);
-  const [displayValues, setDisplayValues] = React.useState<any>(
-    () => (v: any) => v
-  );
 
   const groupedData = useMemo(() => {
     return groupByTimeSlice(logdata, chartConfig, timeSlice);
@@ -58,26 +55,11 @@ export default function GroupBarChart({
     setZoomedDomain(() => domainRange);
   }, []);
 
-  const selectedBarHandler = useCallback(
-    (datum: any) => {
-      const date = dayjs(datum[chartConfig.xAxisKey.key]).format(
-        "YYYY-MM-DD HH:mm"
-      );
-      setSelectedDate(date);
-
-      console.log(date);
-      console.log(zoomedData);
-      // displayValues(groupedData[date]);
-      // if (chartConfig?.cropSelected) {
-      //   setZoomedDomain(() => ({
-      //     end: new Date(date),
-      //     start: new Date(date),
-      //   }));
-      // }
-      return null;
-    },
-    [displayValues]
-  );
+  const selectedBarHandler = useCallback((datum: any) => {
+    const fixedDate = datum.xName.replaceAll(/T([0-9]):/g, "T0$1:");
+    setSelectedDate(fixedDate);
+    return null;
+  }, []);
 
   const zoomedTableData = useMemo(() => {
     if (!selectedDate) {
@@ -88,7 +70,8 @@ export default function GroupBarChart({
           : true;
       });
     }
-    return zoomedData[selectedDate];
+    console.log(zoomedData, selectedDate);
+    return sortBy(zoomedData[selectedDate], chartConfig.xAxisKey.key);
   }, [zoomedDomain, selectedDate, logdata]);
 
   const domain = useMemo(
@@ -100,12 +83,6 @@ export default function GroupBarChart({
     }),
     []
   );
-
-  // const zoomedDataLast = useMemo(() => {
-  //   const keys = Object.keys(zoomedData);
-  //   const defaultKey = keys[keys.length - 1];
-  //   return zoomedData[defaultKey];
-  // }, [zoomedData]);
 
   const maxValues = useMemo(() => {
     const max: any = [];
@@ -250,7 +227,16 @@ export default function GroupBarChart({
                             },
                           },
                         ]}
-                        barRatio={1}
+                        barWidth={
+                          Object.keys(zoomedData).length > 10
+                            ? Math.floor(
+                                (settings.mainChartWidth -
+                                  settings.mainChartPadding.left -
+                                  settings.mainChartPadding.right) /
+                                  Object.keys(zoomedData).length
+                              ) - settings.barsSpacing
+                            : settings.barWidth
+                        }
                         alignment="middle"
                         data={[item]}
                         x={() => key}
@@ -275,11 +261,6 @@ export default function GroupBarChart({
             })}
           </VictoryChart>
         </View>
-        {/*<LegendComponent*/}
-        {/*  chartConfig={chartConfig}*/}
-        {/*  defaultValues={zoomedDataLast}*/}
-        {/*  onDisplayValues={(f) => setDisplayValues(() => f)}*/}
-        {/*/>*/}
       </View>
       <View>
         <ZoomSelector

@@ -20,10 +20,10 @@ const data = JSON.parse(JSON.stringify(dataJson))
   .sort((a: any, b: any) =>
     new Date(a.start_date_time) > new Date(b.start_date_time) ? 1 : -1
   )
-  .slice(0, 100);
+  .slice(0, 200);
 
 const fromDate = dayjs(new Date()).subtract(3, "days").toDate();
-const toDate = dayjs(new Date()).subtract(2, "days").toDate();
+const toDate = dayjs(new Date()).toDate();
 
 export default function App() {
   const [project, setProject] = React.useState("");
@@ -41,7 +41,7 @@ export default function App() {
       return data.filter((pr: any) => {
         const startDate = dateRange[0] ?? fromDate;
         const endDate = dateRange[1] ?? toDate;
-        const currentDate = dayjs(pr?.start_date_time).toDate();
+        const currentDate = new Date(pr?.start_date_time);
         return startDate <= currentDate && currentDate <= endDate;
       });
     }

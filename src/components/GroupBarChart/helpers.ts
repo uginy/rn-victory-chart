@@ -1,6 +1,5 @@
 import { TChartConfig } from "./interface";
 import { groupBy } from "lodash-es";
-import dayjs from "dayjs";
 
 export const abbreviateNumber = (value: any) => {
   let newValue = value;
@@ -33,20 +32,19 @@ export const groupByTimeSlice = (
 
   const groupedData = groupBy(data, (d: any) => {
     const time: any = new Date(d[chartConfig.xAxisKey.key]);
-    if (time.getTime() - groupTime.getTime() < timeSliceSet[timeSlice]) {
-      return dayjs(groupTime).format("YYYY-MM-DD HH:mm");
+    if (time - groupTime < timeSliceSet[timeSlice]) {
+      return groupTime.toISOString();
     }
     groupTime.setMilliseconds(
       groupTime.getMilliseconds() + timeSliceSet[timeSlice]
     );
-    return dayjs(groupTime).format("YYYY-MM-DD HH:mm");
+    return groupTime.toISOString();
   });
 
-  // console.log(groupedData);
   const grData: any = JSON.parse(JSON.stringify(groupedData));
   const groupedIn: any = {};
-  for (const item in grData) {
-    groupedIn[item] = grData[item].reduce((acc: any, it: any) => {
+  for (const dateKey in grData) {
+    groupedIn[dateKey] = grData[dateKey].reduce((acc: any, it: any) => {
       const index = acc.findIndex(
         (a: any) => a[chartConfig.groupId] === it[chartConfig.groupId]
       );
@@ -55,7 +53,7 @@ export const groupByTimeSlice = (
       } else {
         acc[index] = {
           ...it,
-          [chartConfig.xAxisKey.key]: item,
+          [chartConfig.xAxisKey.key]: dateKey,
           [chartConfig.yAxisKey.key]:
             acc[index][chartConfig.yAxisKey.key] + it[chartConfig.yAxisKey.key],
         };
