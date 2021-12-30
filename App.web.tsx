@@ -32,7 +32,6 @@ export default function App() {
     toDate,
   ]);
 
-  console.log(timeSlice);
   const logDataMemo = React.useMemo(() => {
     if (project !== "" && project !== "all") {
       return data.filter((pr: any) => pr.project_id === project);

@@ -30,6 +30,19 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
+  rowHeader: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    textAlign: "center",
+  },
+  columnHeader: {
+    flex: 1,
+    backgroundColor: "#a7b99f",
+    margin: 1,
+    padding: 2,
+    textAlign: "center",
+  },
   column: {
     flex: 1,
     backgroundColor: "#e4e4e4",

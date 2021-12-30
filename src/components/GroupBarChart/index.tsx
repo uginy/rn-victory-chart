@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useMemo } from "react";
-import { Text, View } from "react-native";
+import { View, Text } from "react-native";
 import {
   VictoryAxis,
   VictoryBar,
@@ -9,121 +9,123 @@ import {
   VictoryTheme,
   VictoryTooltip,
 } from "victory-native";
-import { groupBy } from "lodash";
+import { groupBy, sortBy } from "lodash";
 import { settings } from "./settings";
 import { styles } from "./styles";
-import LegendComponent from "./Legend";
 import ZoomSelector from "./ZoomSelector";
 import dayjs from "dayjs";
-import { abbreviateNumber } from "./helpers";
+import { abbreviateNumber, colorGenerator, groupByTimeSlice } from "./helpers";
+import { ETimeSlice, TChartConfig } from "./interface";
 
 interface ChartProps {
   logdata: any;
-  chartConfig: any;
+  chartConfig: TChartConfig;
+  timeSlice: ETimeSlice;
 }
 
-export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
-  logdata = logdata.map((data: any) => ({
-    ...data,
-    [chartConfig.xAxisKey.key]: data[chartConfig.xAxisKey.key]
-      .split("/")
-      .reverse()
-      .join("-"),
-  }));
+export default function GroupBarChart({
+  logdata,
+  chartConfig,
+  timeSlice,
+}: ChartProps) {
   const [chartSize, setChartSize] = useState<{ width: number; height: number }>(
     { width: settings.mainChartWidth, height: settings.mainChartHeight }
   );
   const [selectedDate, setSelectedDate] = React.useState("");
   const [zoomedDomain, setZoomedDomain] = React.useState<any>(null);
-  const [displayValues, setDisplayValues] = React.useState<any>(
-    () => (v: any) => v
-  );
 
   const groupedData = useMemo(() => {
-    return groupBy(logdata, chartConfig.xAxisKey.key);
-  }, []);
+    return groupByTimeSlice(logdata, chartConfig, timeSlice);
+  }, [logdata, timeSlice]);
+
+  const isSmallTimeFrame = useMemo(() => {
+    return [
+      ETimeSlice["15m"],
+      ETimeSlice["30m"],
+      ETimeSlice["1h"],
+      ETimeSlice["3h"],
+    ].includes(timeSlice);
+  }, [timeSlice]);
 
   const zoomedData = useMemo(() => {
-    let grouped = groupBy(logdata, chartConfig.xAxisKey.key);
     if (zoomedDomain) {
       const resultZoomed: any = {};
-      for (const date in grouped) {
+      for (const date in groupedData) {
         const startDate = new Date(zoomedDomain.start);
         const endDate = new Date(zoomedDomain?.end) || domain.end;
         const currentDate = new Date(date);
         if (startDate <= currentDate && currentDate <= endDate) {
-          resultZoomed[date] = grouped[date];
+          resultZoomed[date] = groupedData[date];
         }
       }
       return resultZoomed;
     }
-    if (selectedDate !== "") {
-      const result: any = {};
-      result[selectedDate] = grouped[selectedDate];
-      return result;
+    if (isSmallTimeFrame) {
+      const resultSliced: any = {};
+      for (const date in groupedData) {
+        const startDate = new Date(Object.keys(groupedData)[0]);
+        const endDate = new Date(Object.keys(groupedData)[0]);
+        endDate.setHours(23, 59, 59, 999);
+        const currentDate = new Date(date);
+        if (startDate <= currentDate && currentDate <= endDate) {
+          resultSliced[date] = groupedData[date];
+        }
+      }
+      return resultSliced;
     }
-    return grouped;
-  }, [zoomedDomain]);
+    return groupedData;
+  }, [zoomedDomain, logdata, timeSlice]);
 
   const zoomSelectorChange = useCallback((domainRange) => {
     setSelectedDate("");
     setZoomedDomain(() => domainRange);
   }, []);
 
-  const selectedBarHandler = useCallback(
-    (datum: any) => {
-      const date = dayjs(datum[chartConfig.xAxisKey.key]).format("YYYY-MM-DD");
-      setSelectedDate(date);
-      displayValues(groupedData[date]);
-      if (chartConfig?.cropSelected) {
-        setZoomedDomain(() => ({
-          start: new Date(date),
-          end: new Date(date),
-        }));
-      }
-      return null;
-    },
-    [displayValues]
-  );
+  const selectedBarHandler = useCallback((datum: any) => {
+    let fixedDate = datum.xName.replaceAll(/T([0-9]{1}):/g, "T0$1:");
+    fixedDate = fixedDate.replaceAll(/:([0-9]{1}):/g, ":0$1:");
+    setSelectedDate(fixedDate);
+    return null;
+  }, []);
 
   const zoomedTableData = useMemo(() => {
-    return logdata?.filter((item: any) =>
-      !selectedDate
-        ? zoomedDomain
+    if (!selectedDate) {
+      return logdata?.filter((item: any) => {
+        return zoomedDomain
           ? new Date(item[chartConfig.xAxisKey.key]) >=
-            new Date(zoomedDomain?.start)
-          : true
-        : item[chartConfig.xAxisKey.key] === selectedDate
-    );
-  }, [zoomedDomain, selectedDate]);
+              new Date(zoomedDomain?.start)
+          : true;
+      });
+    }
+
+    return sortBy(zoomedData[selectedDate], chartConfig.xAxisKey.key);
+  }, [zoomedDomain, selectedDate, logdata]);
 
   const domain = useMemo(
     () => ({
-      start: new Date(
+      start: new Date(Object.keys(groupedData)[0]),
+      end: new Date(
         Object.keys(groupedData)[Object.keys(groupedData).length - 1]
       ),
-      end: new Date(Object.keys(groupedData)[0]),
     }),
     []
   );
 
-  const zoomedDataLast = useMemo(() => {
-    const keys = Object.keys(zoomedData);
-    const defaultKey = keys[0];
-    return zoomedData[defaultKey];
-  }, [zoomedData]);
-
   const maxValues = useMemo(() => {
     const max: any = [];
     for (const item in zoomedData) {
-      max.push(
-        groupedData[item].reduce(
-          (acc, item) => acc + (item as any)[chartConfig.yAxisKey.key],
-          0
-        )
-      );
+      if (zoomedData.hasOwnProperty(item)) {
+        max.push(
+          groupedData[item].reduce(
+            (acc: any, item: any) =>
+              acc + (item as any)[chartConfig.yAxisKey.key],
+            0
+          )
+        );
+      }
     }
-    return Math.max(...max);
+
+    return Math.max(...max) > 0 ? Math.max(...max) : 1;
   }, [zoomedData]);
 
   const layoutHandler = (event: any) => {
@@ -131,35 +133,28 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
     setChartSize({ width, height });
   };
 
-  const isBarsMoreThan = Object.keys(zoomedData).length > 4;
-
-  const barWidthAccessor = useMemo(() => {
-    const width =
-      chartSize.width -
-      settings.mainChartPadding.left -
-      settings.mainChartPadding.right;
-    return Object.keys(zoomedData).length > 4
-      ? Math.floor(width / Object.keys(zoomedData).length - 1) -
-          settings.barsSpacing
-      : settings.barWidth;
-  }, [logdata, zoomedData]);
-
   const legendProps = useMemo(() => {
-    const groups = Object.keys(
-      groupBy(logdata, chartConfig.groupKey.name)
-    ).sort();
-    const names = groups.map((program) => ({ name: program }));
-    const colors = groups.map(
-      (program: string) => chartConfig.colorScale[program]
-    );
-    return { names, colors };
-  }, [zoomedTableData]);
+    const grouped: any = groupBy(logdata, chartConfig.groupKey.key);
 
-  const colorScaleBar = useMemo(() => {
-    return Object.keys(chartConfig.colorScale).map(
-      (color) => chartConfig.colorScale[color]
+    const colorMapped: any = {};
+    Object.entries(grouped).forEach(([el, items]: any, i: number) => {
+      colorMapped[el] = {
+        name: items[0][chartConfig.groupKey.name],
+        color:
+          chartConfig.colorScale[i + 1] ??
+          colorGenerator()[i + 1].color ??
+          "black",
+      };
+    });
+    const colors = Object.keys(colorMapped).map(
+      (el: any) => colorMapped[el].color
     );
-  }, []);
+    const names = Object.keys(colorMapped).map((el: any) => ({
+      name: colorMapped[el].name,
+    }));
+
+    return { names, colors, colorMapped };
+  }, [zoomedTableData]);
 
   return (
     <>
@@ -169,22 +164,22 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
             padding={settings.mainChartPadding}
             domain={{ y: [0, maxValues] }}
             theme={VictoryTheme.material}
+            minDomain={{ x: 0 }}
+            maxDomain={{ x: Object.keys(zoomedData).length + 1 }}
             /*@ts-ignore*/
             domainPadding={{ ...settings.mainChartDomainPadding }}
             width={chartSize.width}
             height={chartSize.height}
           >
             <VictoryLegend
-              x={settings.mainChartPadding.left}
               width={chartSize.width}
               title={chartConfig.chartTitle}
               orientation="horizontal"
-              centerTitle
               style={{
-                title: { fontSize: 20 },
-                labels: { lineHeight: 0.4 },
+                title: { fontSize: 16 },
+                labels: { lineHeight: 0.15 },
               }}
-              itemsPerRow={4}
+              itemsPerRow={6}
               colorScale={legendProps.colors}
               data={legendProps.names}
             />
@@ -204,21 +199,21 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
             <VictoryAxis
               label={chartConfig.xAxisKey.name}
               style={{
-                axisLabel: {
-                  fontSize: 16,
-                  padding: isBarsMoreThan ? 60 : 30,
-                  fontWeight: "bold",
-                },
                 tickLabels: {
-                  fontSize: 10,
-                  padding: isBarsMoreThan ? 27 : 5,
-                  angle: isBarsMoreThan ? -90 : 0,
-                  transform: isBarsMoreThan
-                    ? "translate(-3,-3)"
-                    : "translate(0,0)",
+                  angle: "-45",
+                  textAnchor: "end",
+                  fontSize: 8,
+                  padding: 4,
                 },
+                axisLabel: { fontSize: 16, padding: 60, fontWeight: "bold" },
               }}
-              tickFormat={(x) => dayjs(x).format("DD-MM-YYYY")}
+              tickFormat={(x) => {
+                if (isSmallTimeFrame) {
+                  return dayjs(x).format("HH:mm");
+                }
+                return dayjs(x).format("DD-MM-YYYY");
+              }}
+              tickValues={Object.keys(zoomedData).map((el) => new Date(el))}
             />
             <VictoryAxis
               offsetY={chartSize.height - settings.mainChartPadding.top}
@@ -233,78 +228,80 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
               theme={VictoryTheme.material}
               standalone={false}
             />
-            {Object.entries(zoomedData)
-              .reverse()
-              .map(([key, items], i) => (
-                <VictoryStack
-                  style={{ data: { cursor: "pointer" } }}
-                  key={`key-${key}-${i}`}
-                  colorScale={colorScaleBar}
-                >
-                  {(items as any[])?.map((item: any, k: number) => {
-                    return (
-                      <VictoryBar
-                        animate={{
-                          onExit: {
-                            duration: 50,
+            {Object.entries(zoomedData).map(([key, items], i) => (
+              <VictoryStack
+                style={{ data: { cursor: "pointer" } }}
+                key={`key-${key}-${i}`}
+                animate={{ duration: 50 }}
+                colorScale={legendProps.colors}
+              >
+                {(items as any[])?.map((item: any, k: number) => {
+                  return (
+                    <VictoryBar
+                      style={{
+                        data: {
+                          fillOpacity: () => {
+                            return key !== selectedDate && selectedDate !== ""
+                              ? 0.5
+                              : 1;
                           },
-                        }}
-                        style={{
-                          data: {
-                            fillOpacity: () => {
-                              return key !== selectedDate && selectedDate !== ""
-                                ? 0.5
-                                : 1;
-                            },
-                            fill: chartConfig.colorScale[item.entity_name],
-                          },
-                        }}
-                        key={`bar-${key}-${item.entity_name}-${k}`}
-                        name={`bar-${key}-${item.entity_name}-${k}`}
-                        events={[
-                          {
-                            target: "data",
-                            eventHandlers: {
-                              onPress: () => {
-                                return [
-                                  {
-                                    target: "labels",
-                                    mutation: ({ datum }) =>
-                                      selectedBarHandler(datum),
-                                  },
-                                ];
-                              },
+                          fill:
+                            legendProps.colorMapped[
+                              item[chartConfig.groupKey.key]
+                            ].color ?? "black",
+                        },
+                      }}
+                      key={`bar-${key}-${item.entity_name}-${k}`}
+                      name={`bar-${key}-${item.entity_name}-${k}`}
+                      events={[
+                        {
+                          target: "data",
+                          eventHandlers: {
+                            onPress: () => {
+                              return [
+                                {
+                                  target: "labels",
+                                  mutation: ({ datum }) =>
+                                    selectedBarHandler(datum),
+                                },
+                              ];
                             },
                           },
-                        ]}
-                        barWidth={barWidthAccessor}
-                        data={[item]}
-                        x={chartConfig.xAxisKey.key}
-                        y={(datum) => datum[chartConfig.yAxisKey.key] ?? 0}
-                        labels={({ datum }) => {
-                          return `${datum[chartConfig.groupKey.name]}: ${
-                            datum[chartConfig.yAxisKey.key]
-                          }`;
-                        }}
-                        labelComponent={
-                          <VictoryTooltip
-                            renderInPortal={false}
-                            dy={0}
-                            centerOffset={{ x: 25 }}
-                          />
-                        }
-                      />
-                    );
-                  })}
-                </VictoryStack>
-              ))}
+                        },
+                      ]}
+                      barWidth={
+                        Object.keys(zoomedData).length > 10
+                          ? Math.floor(
+                              (chartSize.width -
+                                settings.mainChartPadding.left -
+                                settings.mainChartPadding.right) /
+                                Object.keys(zoomedData).length
+                            ) - settings.barsSpacing
+                          : settings.barWidth
+                      }
+                      alignment="middle"
+                      data={[item]}
+                      x={() => key}
+                      y={(datum) => datum[chartConfig.yAxisKey.key] ?? 0}
+                      labels={({ datum }) => {
+                        return `${datum[chartConfig.groupKey.name]}: ${
+                          datum[chartConfig.yAxisKey.key]
+                        }`;
+                      }}
+                      labelComponent={
+                        <VictoryTooltip
+                          dy={0}
+                          renderInPortal={false}
+                          centerOffset={{ x: 0 }}
+                        />
+                      }
+                    />
+                  );
+                })}
+              </VictoryStack>
+            ))}
           </VictoryChart>
         </View>
-        <LegendComponent
-          chartConfig={chartConfig}
-          defaultValues={zoomedDataLast}
-          onDisplayValues={(f) => setDisplayValues(() => f)}
-        />
       </View>
       <View>
         <ZoomSelector
@@ -312,7 +309,6 @@ export default function GroupBarChart({ logdata, chartConfig }: ChartProps) {
           onDateRangeChange={zoomSelectorChange}
         />
       </View>
-
       <View style={styles.tableWrapper}>
         <View style={styles.table}>
           {zoomedTableData?.map((items: any, i: number) => (
