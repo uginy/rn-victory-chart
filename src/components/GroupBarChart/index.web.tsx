@@ -135,7 +135,8 @@ export default function GroupBarChart({
         name: items[0][chartConfig.groupKey.name],
         color:
           chartConfig.colorScale[i + 1] ??
-          colorGenerator()[i + 1].color ??
+          colorGenerator()[i - Object.keys(chartConfig.colorScale).length]
+            .color ??
           "black",
       };
     });
